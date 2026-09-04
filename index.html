@@ -36,12 +36,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.011em}.mono{fon
     <div>
       <div class="flex justify-between items-center mb-1">
         <label class="label mb-0">Cena dizla [€/l]</label>
-        <span id="price-status" class="text-[10px] text-emerald-400">Shranjeno na napravi</span>
+        <span id="price-status" class="text-[10px] text-zinc-400">Preverjam ceno …</span>
       </div>
       <div class="relative">
         <input id="fuel-price" class="input pr-16 font-bold text-cyan-50" type="number" step="0.001" oninput="calculate()">
         <div class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-bold">€ / l</div>
       </div>
+      <div class="flex items-center justify-between mt-2"><span id="price-date" class="text-[10px] text-zinc-500"></span><button onclick="fetchDieselPrice()" class="text-[10px] font-bold text-cyan-400 hover:text-cyan-300">↻ Posodobi</button></div>
     </div>
 
     <div>
@@ -103,21 +104,109 @@ function calculate() {
   document.getElementById('final-price').textContent = finalTotal.toFixed(2) + ' €';
 }
 
-function loadSavedData() {
+async function fetchDieselPrice() {
+  const status = document.getElementById('price-status');
+  const dateEl = document.getElementById('price-date');
+  status.textContent = 'Preverjam ceno …';
+  status.className = 'text-[10px] text-yellow-400';
+
+  // Uradni vir: GOV.SI. Ker samostojna HTML datoteka ne more vedno
+  // neposredno brati GOV.SI zaradi CORS, uporabimo bralni prehod z omejenim timeoutom.
+  const target = 'https://www.gov.si/teme/cene-naftnih-derivatov/';
+  const urls = [
+    'https://r.jina.ai/' + target,
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(target),
+    'https://corsproxy.io/?url=' + encodeURIComponent(target)
+  ];
+
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timeout);
+      if (!response.ok) continue;
+      const text = await response.text();
+      if (!text) continue;
+
+      // GOV.SI trenutno objavlja tabelo v obliki:
+      // od 1. 9. do 7. 9. 2026 | 1,623 | 1,811
+      const currentYear = new Date().getFullYear();
+      const patterns = [
+        /od\s+\d{1,2}\.\s*\d{1,2}\.\s*do\s+\d{1,2}\.\s*\d{1,2}\.\s*\d{4}[^\d]{0,100}([0-9]{1,2}[,.][0-9]{3})[^\d]{0,50}([0-9]{1,2}[,.][0-9]{3})/i,
+        /dizel(?:skega)?\s+goriva[^\d]{0,150}([0-9]{1,2}[,.][0-9]{3})/i
+      ];
+
+      let price = null;
+      for (const re of patterns) {
+        const m = text.match(re);
+        if (m) {
+          // Pri prvi obliki je prva številka bencin, druga dizel.
+          const candidate = m[2] || m[1];
+          const n = Number(candidate.replace(',', '.'));
+          if (n >= 1 && n <= 4) { price = n; break; }
+        }
+      }
+
+      // Rezervni parser: poišči vrstico, ki vsebuje trenutno obdobje in tri cene.
+      if (price === null) {
+        const lines = text.split(/\r?\n/);
+        const month = new Date().getMonth() + 1;
+        for (const line of lines) {
+          if (line.includes(String(currentYear)) && line.includes('|')) {
+            const nums = [...line.matchAll(/([0-9]{1,2}[,.][0-9]{3})/g)].map(x => Number(x[1].replace(',', '.')));
+            if (nums.length >= 2 && nums[0] >= 1 && nums[0] <= 4 && nums[1] >= 1 && nums[1] <= 4) {
+              // Preveri, da je vrstica približno za trenutni mesec.
+              if (line.includes('. ' + month + '.') || line.includes('.' + month + '.')) {
+                price = nums[1]; break;
+              }
+            }
+          }
+        }
+      }
+
+      if (price !== null) {
+        const value = price.toFixed(3);
+        const now = new Date();
+        document.getElementById('fuel-price').value = value;
+        localStorage.setItem('diesel_price', value);
+        localStorage.setItem('diesel_price_date', now.toISOString());
+        status.textContent = 'Samodejno posodobljeno';
+        status.className = 'text-[10px] text-emerald-400';
+        dateEl.textContent = 'Vir: GOV.SI • preverjeno ' + now.toLocaleDateString('sl-SI');
+        calculate();
+        return true;
+      }
+    } catch (e) {
+      // Poskusi naslednji vir.
+    }
+  }
+
+  // Če noben spletni vir ni dosegljiv, uporabi zadnjo uspešno ceno.
   const savedPrice = localStorage.getItem('diesel_price');
-  const savedDiscount = localStorage.getItem('diesel_discount');
-  
-  if (savedPrice !== null) {
+  const savedDate = localStorage.getItem('diesel_price_date');
+  if (savedPrice) {
     document.getElementById('fuel-price').value = savedPrice;
-  } else {
-    document.getElementById('fuel-price').value = '1.811'; // Privzeta začetna vrednost
+    status.textContent = 'Zadnja znana cena';
+    status.className = 'text-[10px] text-yellow-400';
+    dateEl.textContent = savedDate
+      ? 'Zadnja posodobitev: ' + new Date(savedDate).toLocaleDateString('sl-SI')
+      : 'Brez povezave';
+    calculate();
+    return false;
   }
-  
-  if (savedDiscount !== null) {
-    document.getElementById('discount').value = savedDiscount;
-  }
-  
+
+  document.getElementById('fuel-price').value = '1.811';
+  status.textContent = 'Samodejna posodobitev ni uspela';
+  status.className = 'text-[10px] text-red-400';
+  dateEl.textContent = 'Uporabljena privzeta cena 1,811 €/l';
   calculate();
+  return false;
+}
+
+function loadSavedData() {
+  const savedDiscount=localStorage.getItem("diesel_discount"); if(savedDiscount!==null) document.getElementById("discount").value=savedDiscount;
+  const savedPrice=localStorage.getItem("diesel_price"); document.getElementById("fuel-price").value=savedPrice||"1.811"; calculate(); fetchDieselPrice();
 }
 
 function copyResult() {
