@@ -99,7 +99,7 @@ input[type=number] { -moz-appearance: textfield; }
     </div>
   </div>
 
-  <!-- Sekcija za graf gibanja cen (razširjen za zadnja 2 meseca) -->
+  <!-- Sekcija za graf gibanja cen -->
   <div class="border-t border-zinc-800 pt-5 space-y-3">
     <div class="flex items-center justify-between">
       <span class="text-xs font-bold text-zinc-300 uppercase tracking-wider">Gibanje cene dizla (Zadnja 2 meseca)</span>
@@ -179,39 +179,19 @@ function calculate() {
   document.getElementById('total-saving').textContent = '-' + totalSaving.toFixed(2) + ' €';
   document.getElementById('final-price').textContent = finalTotal.toFixed(2) + ' €';
 
-  if (priceChartInstance) {
-    priceChartInstance.data.datasets[0].data[priceChartInstance.data.datasets[0].data.length - 1] = pricePerLitre;
+  // Posodobitev zadnje točke na grafu ob ročni spremembi cene
+  if (priceChartInstance && priceChartInstance.data.datasets[0].data.length > 0) {
+    const dataArray = priceChartInstance.data.datasets[0].data;
+    dataArray[dataArray.length - 1] = pricePerLitre;
     priceChartInstance.update('none');
   }
 }
 
-function initChart(currentPrice) {
+function initChart(labels, dataValues) {
   const ctx = document.getElementById('priceChart').getContext('2d');
   
-  const labels = [
-    '7.7 - 13.7', 
-    '14.7 - 20.7', 
-    '21.7 - 27.7', 
-    '28.7 - 3.8', 
-    '4.8 - 10.8', 
-    '11.8 - 17.8', 
-    '18.8 - 24.8', 
-    '25.8 - 31.8', 
-    '1.9 - 7.9 (Tren.)'
-  ];
-  const dataValues = [
-    1.640,
-    1.696, 
-    1.649, 
-    1.828,
-    1.882,
-    1.753, 
-    1.857, 
-    1.903,
-    currentPrice
-  ];
-
   if (priceChartInstance) {
+    priceChartInstance.data.labels = labels;
     priceChartInstance.data.datasets[0].data = dataValues;
     priceChartInstance.update();
     return;
@@ -228,7 +208,7 @@ function initChart(currentPrice) {
         backgroundColor: 'rgba(6, 182, 212, 0.1)',
         borderWidth: 2,
         fill: true,
-        tension: 0.3,
+        tension: 0, // Popolnoma ravne linije (brez ukrivljenosti)
         pointBackgroundColor: '#06b6d4',
         pointRadius: 3
       }]
@@ -263,108 +243,158 @@ function initChart(currentPrice) {
   });
 }
 
+function parseDate(dateStr, year) {
+  const parts = dateStr.replace(/\s/g, '').split('.');
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  return new Date(year, month, day);
+}
+
 async function fetchDieselPrice() {
   const status = document.getElementById('price-status');
   const dateEl = document.getElementById('price-date');
-  status.textContent = 'Preverjam ceno …';
+  status.textContent = 'Preverjam podatke z GOV.SI …';
   status.className = 'text-[10px] text-yellow-400';
 
   const target = 'https://www.gov.si/teme/cene-naftnih-derivatov/';
+  
   const urls = [
     'https://r.jina.ai/' + target,
     'https://api.allorigins.win/raw?url=' + encodeURIComponent(target),
     'https://corsproxy.io/?url=' + encodeURIComponent(target)
   ];
 
+  let historyFetched = false;
+
   for (const url of urls) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      const timeout = setTimeout(() => controller.abort(), 6000);
       const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timeout);
+      
       if (!response.ok) continue;
-      const text = await response.text();
-      if (!text) continue;
+      let text = await response.text();
+      if (!text || text.length < 100) continue;
 
-      const currentYear = new Date().getFullYear();
-      const patterns = [
-        /od\s+\d{1,2}\.\s*\d{1,2}\.\s*do\s+\d{1,2}\.\s*\d{1,2}\.\s*\d{4}[^\d]{0,100}([0-9]{1,2}[,.][0-9]{3})[^\d]{0,50}([0-9]{1,2}[,.][0-9]{3})/i,
-        /dizel(?:skega)?\s+goriva[^\d]{0,150}([0-9]{1,2}[,.][0-9]{3})/i
-      ];
+      let cleanText = text.replace(/<[^>]+>/g, ' ');
+      cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
 
-      let price = null;
-      for (const re of patterns) {
-        const m = text.match(re);
-        if (m) {
-          const candidate = m[2] || m[1];
-          const n = Number(candidate.replace(',', '.'));
-          if (n >= 1 && n <= 4) { price = n; break; }
+      let history = [];
+      // Regex, ki poleg obdobja in cen ujame tudi letnico (npr. 2026)
+      const regex = /od\s+(\d{1,2}\.\s*\d{1,2}\.)\s*do\s+(\d{1,2}\.\s*\d{1,2}\.)[^\d]{0,50}(\d{4})[^\d]{0,100}?([1-4][.,]\d{3})[^\d]{0,100}?([1-4][.,]\d{3})/gi;
+      
+      let match;
+      while ((match = regex.exec(cleanText)) !== null) {
+        const dateStartStr = match[1];
+        const dateEndStr = match[2];
+        const year = parseInt(match[3], 10);
+        const priceDiesel = parseFloat(match[5].replace(',', '.'));
+        
+        const startDate = parseDate(dateStartStr, year);
+        const endDate = parseDate(dateEndStr, year);
+        endDate.setHours(23, 59, 59, 999); // vključno do konca dneva
+
+        const label = `${dateStartStr.replace(/\s/g, '')}-${dateEndStr.replace(/\s/g, '')}`;
+        
+        if (!history.find(h => h.label === label) && priceDiesel > 1.0 && priceDiesel < 3.0) {
+            history.push({ label: label, price: priceDiesel, startDate, endDate });
         }
       }
 
-      if (price === null) {
-        const lines = text.split(/\r?\n/);
-        const month = new Date().getMonth() + 1;
-        for (const line of lines) {
-          if (line.includes(String(currentYear)) && line.includes('|')) {
-            const nums = [...line.matchAll(/([0-9]{1,2}[,.][0-9]{3})/g)].map(x => Number(x[1].replace(',', '.')));
-            if (nums.length >= 2 && nums[0] >= 1 && nums[0] <= 4 && nums[1] >= 1 && nums[1] <= 4) {
-              if (line.includes('. ' + month + '.') || line.includes('.' + month + '.')) {
-                price = nums[1]; break;
-              }
-            }
+      if (history.length >= 2) {
+        // Uredimo kronološko za preverjanje datuma
+        history.sort((a, b) => a.startDate - b.startDate);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Poiščemo tisto obdobje, v katerega pade današnji dan
+        let currentItem = history.find(item => today >= item.startDate && today <= item.endDate);
+
+        if (!currentItem) {
+          if (today > history[history.length - 1].endDate) {
+            currentItem = history[history.length - 1];
+          } else {
+            const pastItems = history.filter(item => today > item.endDate);
+            currentItem = pastItems.length > 0 ? pastItems[pastItems.length - 1] : history[0];
           }
         }
-      }
 
-      if (price !== null) {
-        const value = price.toFixed(3);
-        const now = new Date();
-        document.getElementById('fuel-price').value = value;
-        localStorage.setItem('diesel_price', value);
-        localStorage.setItem('diesel_price_date', now.toISOString());
-        status.textContent = 'Samodejno posodobljeno';
+        const currentPrice = currentItem ? currentItem.price : history[history.length - 1].price;
+
+        // Pripravimo podatke za graf (zadnjih 8 vnosov, obrnjeno kronološko)
+        let chartHistory = [...history].sort((a, b) => b.startDate - a.startDate).slice(0, 8).reverse();
+        const labels = chartHistory.map(item => item.label);
+        const prices = chartHistory.map(item => item.price);
+        
+        document.getElementById('fuel-price').value = currentPrice.toFixed(3);
+        
+        localStorage.setItem('diesel_price', currentPrice.toFixed(3));
+        localStorage.setItem('diesel_price_date', new Date().toISOString());
+        localStorage.setItem('diesel_history', JSON.stringify({labels, prices}));
+
+        status.textContent = 'Samodejno posodobljeno (velja za danes)';
         status.className = 'text-[10px] text-emerald-400';
-        dateEl.textContent = 'Vir: GOV.SI • preverjeno ' + now.toLocaleDateString('sl-SI');
+        dateEl.textContent = 'Vir: GOV.SI • preverjeno ' + new Date().toLocaleDateString('sl-SI');
+        
         calculate();
-        initChart(parseFloat(value));
-        return true;
+        initChart(labels, prices);
+        historyFetched = true;
+        break;
       }
     } catch (e) {
-      // Naslednji vir
+      console.warn("Proxy povezava ni uspela:", url, e);
     }
   }
 
-  const savedPrice = localStorage.getItem('diesel_price');
-  const savedDate = localStorage.getItem('diesel_price_date');
-  let finalVal = 1.811; 
-  if (savedPrice) {
-    document.getElementById('fuel-price').value = savedPrice;
-    status.textContent = 'Zadnja znana cena';
-    status.className = 'text-[10px] text-yellow-400';
-    dateEl.textContent = savedDate
-      ? 'Zadnja posodobitev: ' + new Date(savedDate).toLocaleDateString('sl-SI')
-      : 'Brez povezave';
-    finalVal = parseFloat(savedPrice);
-  } else {
-    document.getElementById('fuel-price').value = '1.811';
-    status.textContent = 'Samodejna posodobitev ni uspela';
-    status.className = 'text-[10px] text-red-400';
-    dateEl.textContent = 'Uporabljena veljavna cena 1,811 €/l';
+  // FAIL-SAFE
+  if (!historyFetched) {
+    const savedPrice = localStorage.getItem('diesel_price');
+    const savedDate = localStorage.getItem('diesel_price_date');
+    const savedHistory = localStorage.getItem('diesel_history');
+    
+    if (savedPrice && savedHistory) {
+      document.getElementById('fuel-price').value = savedPrice;
+      status.textContent = 'Zadnja znana cena';
+      status.className = 'text-[10px] text-yellow-400';
+      dateEl.textContent = savedDate
+        ? 'Zadnja osvežitev: ' + new Date(savedDate).toLocaleDateString('sl-SI')
+        : 'Brez povezave (podatki iz naprave)';
+      
+      const historyData = JSON.parse(savedHistory);
+      calculate();
+      initChart(historyData.labels, historyData.prices);
+    } else {
+      status.textContent = 'Naložena zasilna zgodovina';
+      status.className = 'text-[10px] text-yellow-400';
+      dateEl.textContent = 'GOV.SI podatkov trenutno ni bilo mogoče prebrati.';
+      
+      const fallbackLabels = ['14.7.-20.7.', '21.7.-27.7.', '28.7.-3.8.', '4.8.-10.8.', '11.8.-17.8.', '18.8.-24.8.', '25.8.-31.8.', '1.9.-7.9.'];
+      const fallbackPrices = [1.723, 1.855, 1.828, 1.882, 1.753, 1.857, 1.903, 1.811];
+      
+      initChart(fallbackLabels, fallbackPrices);
+      document.getElementById('fuel-price').value = '1.811';
+      calculate();
+    }
   }
-  calculate();
-  initChart(finalVal);
-  return false;
 }
 
 function loadSavedData() {
   const savedDiscount = localStorage.getItem("diesel_discount"); 
   if (savedDiscount !== null) document.getElementById("discount").value = savedDiscount;
-  const savedPrice = localStorage.getItem("diesel_price"); 
-  const initialPrice = parseFloat(savedPrice || "1.811");
-  document.getElementById("fuel-price").value = initialPrice; 
+  
+  const savedHistory = localStorage.getItem('diesel_history');
+  if (savedHistory) {
+    const h = JSON.parse(savedHistory);
+    const savedPrice = localStorage.getItem("diesel_price") || h.prices[h.prices.length - 1];
+    document.getElementById("fuel-price").value = savedPrice; 
+    initChart(h.labels, h.prices);
+  } else {
+    initChart(['Ogled', 'podatkov'], [0, 0]);
+  }
+
   calculate(); 
-  initChart(initialPrice);
   fetchDieselPrice();
 }
 
