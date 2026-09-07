@@ -178,13 +178,6 @@ function calculate() {
   document.getElementById('base-total').textContent = baseTotal.toFixed(2) + ' €';
   document.getElementById('total-saving').textContent = '-' + totalSaving.toFixed(2) + ' €';
   document.getElementById('final-price').textContent = finalTotal.toFixed(2) + ' €';
-
-  // Posodobitev zadnje točke na grafu ob ročni spremembi cene
-  if (priceChartInstance && priceChartInstance.data.datasets[0].data.length > 0) {
-    const dataArray = priceChartInstance.data.datasets[0].data;
-    dataArray[dataArray.length - 1] = pricePerLitre;
-    priceChartInstance.update('none');
-  }
 }
 
 function initChart(labels, dataValues) {
@@ -281,7 +274,6 @@ async function fetchDieselPrice() {
       cleanText = cleanText.replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ');
 
       let history = [];
-      // Regex, ki poleg obdobja in cen ujame tudi letnico (npr. 2026)
       const regex = /od\s+(\d{1,2}\.\s*\d{1,2}\.)\s*do\s+(\d{1,2}\.\s*\d{1,2}\.)[^\d]{0,50}(\d{4})[^\d]{0,100}?([1-4][.,]\d{3})[^\d]{0,100}?([1-4][.,]\d{3})/gi;
       
       let match;
@@ -293,7 +285,7 @@ async function fetchDieselPrice() {
         
         const startDate = parseDate(dateStartStr, year);
         const endDate = parseDate(dateEndStr, year);
-        endDate.setHours(23, 59, 59, 999); // vključno do konca dneva
+        endDate.setHours(23, 59, 59, 999);
 
         const label = `${dateStartStr.replace(/\s/g, '')}-${dateEndStr.replace(/\s/g, '')}`;
         
@@ -303,13 +295,11 @@ async function fetchDieselPrice() {
       }
 
       if (history.length >= 2) {
-        // Uredimo kronološko za preverjanje datuma
         history.sort((a, b) => a.startDate - b.startDate);
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Poiščemo tisto obdobje, v katerega pade današnji dan
         let currentItem = history.find(item => today >= item.startDate && today <= item.endDate);
 
         if (!currentItem) {
@@ -323,7 +313,6 @@ async function fetchDieselPrice() {
 
         const currentPrice = currentItem ? currentItem.price : history[history.length - 1].price;
 
-        // Pripravimo podatke za graf (zadnjih 8 vnosov, obrnjeno kronološko)
         let chartHistory = [...history].sort((a, b) => b.startDate - a.startDate).slice(0, 8).reverse();
         const labels = chartHistory.map(item => item.label);
         const prices = chartHistory.map(item => item.price);
