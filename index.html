@@ -323,7 +323,7 @@ async function fetchDieselPrice() {
         localStorage.setItem('diesel_price_date', new Date().toISOString());
         localStorage.setItem('diesel_history', JSON.stringify({labels, prices}));
 
-        status.textContent = 'Samodejno posodobljeno (velja za danes)';
+        status.textContent = 'Samodejno posodobljeno';
         status.className = 'text-[10px] text-emerald-400';
         dateEl.textContent = 'Vir: GOV.SI • preverjeno ' + new Date().toLocaleDateString('sl-SI');
         
