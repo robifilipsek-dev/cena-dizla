@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0c0e11">
-<title>Dizel — računi in cisterna</title>
+<title>Dizel — računi iz cisterne</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f59e0b'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h8v16zM8 6h4v4H8V6zm11.29-2.29a1 1 0 0 0-1.42 0L15.17 6.3a1 1 0 0 0 0 1.42l1.42 1.42a1 1 0 0 0 1.42 0l2.71-2.71a1 1 0 0 0 0-1.42zM17 10.41V13a3 3 0 0 1-3 3h-1v2h1a5 5 0 0 0 5-5v-2.59z'/></svg>">
 <script>(function(){try{var t=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=t;if(t==='light')document.querySelector('meta[name=theme-color]').content='#e9edf1'}catch(e){}})()</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -80,7 +80,7 @@ button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .li{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;background:var(--soft);border-radius:16px}
 .li.mk{background:color-mix(in srgb,var(--ac) 12%,transparent);border:1.5px dashed color-mix(in srgb,var(--ac) 55%,transparent)}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
-.dot.pump{background:#f59e0b}.dot.fill{background:var(--down)}.dot.use{background:var(--blue)}.dot.mark{background:var(--tx)}
+.dot.bill{background:var(--ac)}.dot.mark{background:var(--tx)}
 .lt{flex:1;display:grid;gap:2px;min-width:0}.lt b{font-size:15px;font-weight:800}.lt span{font-size:11.5px;color:var(--mu)}
 .x{width:30px;height:30px;border-radius:10px;color:var(--mu);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;flex:none}.x:hover{background:var(--line);color:var(--tx)}
 .x .ic{width:16px;height:16px}
@@ -190,20 +190,13 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
           <button id="copyBtn" class="copy" onclick="copyResult()">Kopiraj</button>
         </div>
 
-        <div>
-          <label class="lab">Vrsta računa</label>
-          <div class="seg sm" id="kind-seg">
-            <button data-k="pump" aria-pressed="true" onclick="setSaveKind('pump')">Točenje na črpalki</button>
-            <button data-k="fill" aria-pressed="false" onclick="setSaveKind('fill')">Polnjenje cisterne</button>
-          </div>
-          <p class="hint" id="kind-hint">Gorivo, ki si ga natočil neposredno v vozilo.</p>
-        </div>
+        <p class="hint" id="stock-hint" style="margin:0"></p>
 
         <div class="notefield">
           <label class="lab" for="note">Opomba</label>
-          <textarea id="note" class="in pl" maxlength="200" rows="1" placeholder="npr. številka računa, vozilo, dobavitelj"></textarea>
+          <textarea id="note" class="in pl" maxlength="200" rows="1" placeholder="npr. stranka, vozilo, številka računa"></textarea>
         </div>
-        <button class="savebtn pri" onclick="saveEntry()">Shrani račun</button>
+        <button class="savebtn pri" onclick="saveEntry()">Shrani račun (iztočeno iz cisterne)</button>
       </div>
 
       <div class="sec">
@@ -227,26 +220,9 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
     <!-- ===== CISTERNA ===== -->
     <section id="p-tank" style="display:grid;gap:26px" hidden>
       <div id="tank-active"></div>
-
-      <div class="sec" id="use-sec">
-        <div><h2>Točenje iz cisterne</h2><p class="hint">Vpiši, koliko litrov si pretočil iz cisterne.</p></div>
-        <div class="g2">
-          <div><label class="lab" for="u-date">Datum</label><input id="u-date" class="in pl" type="date"></div>
-          <div><label class="lab" for="u-liters">Litri</label><input id="u-liters" class="in pl" type="number" step="0.01" inputmode="decimal" onkeypress="allowComma(event)" placeholder="0"></div>
-        </div>
-        <div>
-          <label class="lab" for="u-note">Opomba</label>
-          <textarea id="u-note" class="in pl" maxlength="200" rows="1" placeholder="npr. traktor, kombi, bager"></textarea>
-        </div>
-        <button class="savebtn pri" onclick="saveUse()">Shrani točenje iz cisterne</button>
-        <div class="pills">
-          <button class="link" onclick="goFill()">+ Račun za polnjenje cisterne</button>
-          <button class="link" onclick="openMark()">⛽ Nova cisterna</button>
-        </div>
-      </div>
-
+      <div class="pills" id="tank-actions"><button class="link" onclick="openMark()">⛽ Nova cisterna</button></div>
       <div class="sec">
-        <div><h2>Statistika po obdobjih</h2><p class="hint">Seštevek računov in litrov od označbe nove cisterne naprej.</p></div>
+        <div><h2>Statistika po cisternah</h2><p class="hint">Seštevek iztočenih litrov in računov od označbe nove cisterne naprej.</p></div>
         <div style="display:grid;gap:10px" id="tank-periods"></div>
       </div>
     </section>
@@ -258,45 +234,31 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
         <div id="hist-stats" style="display:grid;gap:10px"></div>
       </div>
       <div class="sec">
-        <div class="row"><h2>Zapisi</h2><button class="link" onclick="exportCsv()">↓ Izvozi CSV</button></div>
-        <div class="seg sm" id="filters">
-          <button data-f="all" aria-pressed="true" onclick="setFilter('all')">Vse</button>
-          <button data-f="bills" aria-pressed="false" onclick="setFilter('bills')">Računi</button>
-          <button data-f="tank" aria-pressed="false" onclick="setFilter('tank')">Cisterna</button>
-        </div>
+        <div class="row"><h2>Računi</h2><button class="link" onclick="exportCsv()">↓ Izvozi CSV</button></div>
         <div class="log" id="log"></div>
       </div>
     </section>
   </div>
 
-  <!-- Urejanje zapisa -->
+  <!-- Urejanje računa -->
   <dialog id="editDlg" aria-labelledby="edit-title">
     <div style="display:grid;gap:16px">
-      <div class="row"><h1 id="edit-title" style="font-size:20px">Uredi zapis</h1><button class="x" onclick="closeEdit()" aria-label="Zapri">×</button></div>
+      <div class="row"><h1 id="edit-title" style="font-size:20px">Uredi račun</h1><button class="x" onclick="closeEdit()" aria-label="Zapri">×</button></div>
+      <div><label class="lab" for="e-date">Datum</label><input id="e-date" class="in pl" type="date"></div>
       <div class="g2">
-        <div><label class="lab" for="e-date">Datum</label><input id="e-date" class="in pl" type="date"></div>
-        <div><label class="lab" for="e-kind">Vrsta</label>
-          <select id="e-kind" class="in pl" onchange="editKindUI()">
-            <option value="pump">Črpalka</option>
-            <option value="fill">Polnjenje cisterne</option>
-            <option value="use">Iz cisterne</option>
-          </select></div>
-      </div>
-      <div class="g2" id="e-money">
         <div><label class="lab" for="e-price">Cena [€/l]</label><input id="e-price" class="in pl" type="number" step="0.001" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
         <div><label class="lab" for="e-liters">Litri</label><input id="e-liters" class="in pl" type="number" step="0.01" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
       </div>
-      <div id="e-uselit" hidden><label class="lab" for="e-liters2">Litri</label><input id="e-liters2" class="in pl" type="number" step="0.01" inputmode="decimal" onkeypress="allowComma(event)"></div>
-      <div id="e-discwrap"><label class="lab" for="e-disc">Popust [centi na liter]</label><input id="e-disc" class="in pl" type="number" step="0.1" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
+      <div><label class="lab" for="e-disc">Popust [centi na liter]</label><input id="e-disc" class="in pl" type="number" step="0.1" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
       <div class="notefield">
         <label class="lab" for="e-note">Opomba</label>
-        <textarea id="e-note" class="in pl" maxlength="200" rows="1" placeholder="npr. vozilo, opomba"></textarea>
+        <textarea id="e-note" class="in pl" maxlength="200" rows="1" placeholder="npr. stranka, vozilo"></textarea>
       </div>
-      <div class="etot" id="e-totwrap"><span>Znesek</span><b id="e-total">0,00 €</b></div>
+      <div class="etot"><span>Znesek</span><b id="e-total">0,00 €</b></div>
       <div class="btns">
         <button class="btn" onclick="closeEdit()">Prekliči</button>
         <button class="btn pri" onclick="saveEdit()">Shrani spremembe</button>
-        <button class="btn dng" onclick="deleteFromEdit()">Izbriši zapis</button>
+        <button class="btn dng" onclick="deleteFromEdit()">Izbriši račun</button>
       </div>
     </div>
   </dialog>
@@ -305,12 +267,11 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
   <dialog id="markDlg" aria-labelledby="mark-title">
     <div style="display:grid;gap:16px">
       <div class="row"><h1 id="mark-title" style="font-size:20px">Nova cisterna</h1><button class="x" onclick="closeMark()" aria-label="Zapri">×</button></div>
-      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in točenja štejejo za novo cisterno. Starejši zapisi ostanejo v prejšnjem obdobju.</p>
+      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo, polno cisterno. Starejši računi ostanejo v prejšnjem obdobju.</p>
       <div class="g2">
         <div><label class="lab" for="m-date">Začetek (datum)</label><input id="m-date" class="in pl" type="date"></div>
         <div><label class="lab" for="m-cap">Prostornina [l]</label><input id="m-cap" class="in pl" type="number" step="1" inputmode="decimal" value="1000"></div>
       </div>
-      <div><label class="lab" for="m-start">Že v cisterni ob začetku [l]</label><input id="m-start" class="in pl" type="number" step="0.01" inputmode="decimal" value="0" onkeypress="allowComma(event)"><p class="hint">Pusti 0, če je cisterna prazna. Gorivo polniš z računi za polnjenje.</p></div>
       <div class="btns">
         <button class="btn" onclick="closeMark()">Prekliči</button>
         <button class="btn pri" onclick="saveMark()">Shrani</button>
@@ -326,11 +287,8 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 const $ = id => document.getElementById(id);
 const fmt = (n, d = 2) => n.toLocaleString('sl-SI', { minimumFractionDigits: d, maximumFractionDigits: d });
 const PUMP = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h8v16zM8 6h4v4H8V6zm11.29-2.29a1 1 0 0 0-1.42 0L15.17 6.3a1 1 0 0 0 0 1.42l1.42 1.42a1 1 0 0 0 1.42 0l2.71-2.71a1 1 0 0 0 0-1.42zM17 10.41V13a3 3 0 0 1-3 3h-1v2h1a5 5 0 0 0 5-5v-2.59z';
-const KIND = { pump: 'Črpalka', fill: 'Polnjenje cisterne', use: 'Iz cisterne', mark: 'Nova cisterna' };
-const KHINT = { pump: 'Gorivo, ki si ga natočil neposredno v vozilo.', fill: 'Račun za gorivo, ki si ga natočil v svojo cisterno.' };
 
 let tab = 'calc', range = 3, chart = null, deferredPrompt = null, appReady = false;
-let saveKind = 'pump', filter = 'all';
 const D = { price: '', discount: '0', useDiscount: false, hist: [] };
 
 function ls(k, v) {
@@ -462,6 +420,7 @@ function calculate() {
   tween($('base-total'), base);
   tween($('total-saving'), base - fin, '−');
   tween($('final-price'), fin);
+  updateStockHint();
 }
 
 function tween(el, to, pre = '') {
@@ -477,16 +436,9 @@ function tween(el, to, pre = '') {
   })(t0);
 }
 
-function setSaveKind(k) {
-  saveKind = k;
-  ls('save_kind', k);
-  document.querySelectorAll('#kind-seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
-  $('kind-hint').textContent = KHINT[k];
-}
-
-/* ---------- Zapisi ---------- */
-/* k: 'pump' (račun na črpalki), 'fill' (račun za polnjenje cisterne),
-      'use' (točenje iz cisterne, litri), 'mark' (začetek nove cisterne: cap, s) */
+/* ---------- Računi in cisterna ---------- */
+/* k: 'bill' = račun za gorivo, iztočeno iz cisterne
+      'mark' = začetek nove cisterne (cap = prostornina v litrih) */
 let log = [], editId = null, markId = null;
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = v => parseFloat(String(v).replace(',', '.')) || 0;
@@ -495,155 +447,140 @@ const lineTot = (p, l, d) => Math.max(0, p - d / 100) * l;
 const sortAsc = (a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : a.id - b.id;
 const sortDesc = (a, b) => -sortAsc(a, b);
 
-function saveLog() { ls('dizel_log', JSON.stringify(log)); renderLog(); if (tab === 'tank') renderTank(); }
+function saveLog() { ls('dizel_log', JSON.stringify(log)); renderLog(); renderTank(); updateStockHint(); }
 
 function loadLog() {
-  let raw = ls('dizel_log');
+  let raw = ls('dizel_log'), changed = false;
   if (raw !== null) {
     try { log = JSON.parse(raw) || []; } catch (e) { log = []; }
-    return;
+  } else {
+    /* enkratna selitev iz stare aplikacije (samo dizel); stari ključ ostane nedotaknjen */
+    try {
+      const old = JSON.parse(ls('fuel_log')) || [];
+      log = old.filter(x => x.f === 'diesel').map(x => ({ id: x.id, t: x.t, k: 'bill', p: x.p, l: x.l, d: x.d || 0, n: x.n || '', tot: x.tot }));
+    } catch (e) { log = []; }
+    changed = log.length > 0;
   }
-  /* enkratna selitev iz stare aplikacije (samo dizel); stari ključ ostane nedotaknjen */
-  try {
-    const old = JSON.parse(ls('fuel_log')) || [];
-    log = old.filter(x => x.f === 'diesel').map(x => ({ id: x.id, t: x.t, k: 'pump', p: x.p, l: x.l, d: x.d || 0, n: x.n || '', tot: x.tot }));
-  } catch (e) { log = []; }
-  if (log.length) ls('dizel_log', JSON.stringify(log));
-}
-
-function stampNow(dateStr) {
-  const now = new Date(), d = parseISO(dateStr);
-  d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-  return d.toISOString();
+  /* poenotenje starejših vrst zapisov */
+  const before = log.length;
+  log = log.filter(x => x.k !== 'use').map(x => {
+    if (x.k === 'mark') return x;
+    if (x.k !== 'bill') changed = true;
+    return Object.assign({}, x, { k: 'bill' });
+  });
+  if (log.length !== before) changed = true;
+  if (changed) ls('dizel_log', JSON.stringify(log));
 }
 
 function saveEntry() {
   const price = num(D.price), l = num($('liters').value);
   if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
   const disc = D.useDiscount ? num(D.discount) : 0;
-  const note = $('note').value.trim().slice(0, 200);
-  log.push({ id: Date.now(), t: new Date().toISOString(), k: saveKind, p: price, l, d: disc, n: note, tot: lineTot(price, l, disc) });
+  const act = activePeriod();
+  const over = act && l > pstat(act).stock + 0.005;
+  log.push({ id: Date.now(), t: new Date().toISOString(), k: 'bill', p: price, l, d: disc, n: $('note').value.trim().slice(0, 200), tot: lineTot(price, l, disc) });
   saveLog();
   $('note').value = '';
-  showToast(saveKind === 'fill' ? 'Račun za polnjenje cisterne je shranjen.' : 'Račun je shranjen.');
+  showToast(over ? 'Račun je shranjen. Pozor: iztočeno je več, kot je po evidenci bilo v cisterni.' : 'Račun je shranjen.');
 }
-
-function saveUse() {
-  const l = num($('u-liters').value), ds = $('u-date').value;
-  if (!l) { showToast('Vnesi količino v litrih.'); return; }
-  if (!ds) { showToast('Izberi datum.'); return; }
-  const act = activePeriod();
-  if (act && l > stockOf(act) + 0.005) showToast('Pozor: v cisterni je po evidenci manj goriva.');
-  log.push({ id: Date.now(), t: stampNow(ds), k: 'use', p: 0, l, d: 0, n: $('u-note').value.trim().slice(0, 200), tot: 0 });
-  saveLog();
-  $('u-liters').value = ''; $('u-note').value = '';
-  if (!act || l <= stockOf(act) + 0.005) showToast('Točenje iz cisterne je shranjeno.');
-}
-
-function goFill() { setSaveKind('fill'); switchTab('calc'); $('liters').focus(); }
 
 function delEntry(id) {
-  if (!confirm('Želiš izbrisati ta zapis?')) return;
+  if (!confirm('Želiš izbrisati ta račun?')) return;
   log = log.filter(x => x.id !== id);
   saveLog();
-  showToast('Zapis je izbrisan.');
+  showToast('Račun je izbrisan.');
 }
 
 /* ---------- Obdobja in statistika ---------- */
 function periods() {
-  const ps = [{ mark: null, items: [] }];
+  const ps = [{ mark: null, items: [], end: null }];
   [...log].sort(sortAsc).forEach(e => {
-    if (e.k === 'mark') ps.push({ mark: e, items: [] });
+    if (e.k === 'mark') { ps[ps.length - 1].end = e.t; ps.push({ mark: e, items: [], end: null }); }
     else ps[ps.length - 1].items.push(e);
   });
   return ps;
 }
 
 function pstat(p) {
-  const s = { fl: 0, fe: 0, fn: 0, ul: 0, un: 0, pl: 0, pe: 0, pn: 0 };
-  p.items.forEach(e => {
-    if (e.k === 'fill') { s.fl += e.l; s.fe += e.tot; s.fn++; }
-    else if (e.k === 'use') { s.ul += e.l; s.un++; }
-    else { s.pl += e.l; s.pe += e.tot; s.pn++; }
-  });
-  s.avg = s.fl ? s.fe / s.fl : 0;
-  s.val = s.ul * s.avg;
-  s.start = p.mark ? (p.mark.s || 0) : 0;
-  s.stock = s.start + s.fl - s.ul;
+  const s = { n: p.items.length, l: 0, e: 0 };
+  p.items.forEach(e => { s.l += e.l; s.e += e.tot; });
+  s.avg = s.l ? s.e / s.l : 0;
+  s.cap = p.mark ? (p.mark.cap || 1000) : 0;
+  s.stock = s.cap - s.l;
   return s;
 }
-const stockOf = p => pstat(p).stock;
 function activePeriod() { const ps = periods(); return ps.length > 1 ? ps[ps.length - 1] : null; }
+
+function updateStockHint() {
+  const el = $('stock-hint');
+  if (!el) return;
+  const act = activePeriod();
+  if (!act) { el.textContent = 'Cisterna še ni označena – glej zavihek Cisterna.'; el.className = 'hint'; return; }
+  const s = pstat(act), l = num($('liters').value);
+  if (l > s.stock + 0.005) { el.textContent = 'Pozor: v cisterni je po evidenci še ' + fmt(Math.max(0, s.stock)) + ' l, vnesel si ' + fmt(l) + ' l.'; el.className = 'hint st warn'; }
+  else { el.textContent = 'V cisterni je po evidenci še ' + fmt(s.stock, 0) + ' l od ' + fmt(s.cap, 0) + ' l.'; el.className = 'hint'; }
+}
 
 function renderTank() {
   const ps = periods(), act = ps.length > 1 ? ps[ps.length - 1] : null;
   const box = $('tank-active');
   if (!act) {
-    box.innerHTML = `<div class="empty">Cisterna še ni označena.<br>Ko začneš polniti iz nove cisterne, označi začetek – računi in litri se bodo od takrat seštevali ločeno.</div>
-      <button class="savebtn pri" style="margin-top:12px" onclick="openMark()">⛽ Začni z novo cisterno</button>`;
-    $('use-sec').hidden = true;
+    box.innerHTML = `<div class="empty">Cisterna še ni označena.<br>Ko začneš točiti iz nove 1000 l cisterne, označi začetek – računi in iztočeni litri se bodo od takrat seštevali ločeno.</div>`;
+    $('tank-actions').firstElementChild.textContent = '⛽ Začni z novo cisterno';
   } else {
-    $('use-sec').hidden = false;
-    const s = pstat(act), cap = act.mark.cap || 1000;
-    const pct = Math.max(0, Math.min(100, s.stock / cap * 100));
+    $('tank-actions').firstElementChild.textContent = '⛽ Nova cisterna';
+    const s = pstat(act);
+    const pct = Math.max(0, Math.min(100, s.stock / s.cap * 100));
     const days = Math.max(1, Math.ceil((Date.now() - new Date(act.mark.t)) / 864e5));
     box.innerHTML = `<div style="display:grid;gap:14px">
-      <div class="tankhead"><div><small>Stanje v cisterni</small><div class="big">${fmt(s.stock, 0)} l</div></div><small>od ${fmt(cap, 0)} l · ${fmt(pct, 0)} %</small></div>
+      <div class="tankhead"><div><small>Preostalo v cisterni</small><div class="big">${fmt(Math.max(0, s.stock), 0)} l</div></div><small>od ${fmt(s.cap, 0)} l · ${fmt(pct, 0)} %</small></div>
       <div class="gauge${pct < 15 ? ' low' : ''}"><i style="width:${pct}%"></i></div>
       <div class="kv"><span>Nova cisterna od</span><b>${fmtDate(new Date(act.mark.t))}</b></div>
-      <div class="kv"><span>Povprečna poraba na dan</span><b>${fmt(s.ul / days, 1)} l</b></div>
-      <div class="kv"><span>Povprečna cena goriva v cisterni</span><b>${s.fl ? fmt(s.avg, 3) + ' €/l' : '—'}</b></div>
-      ${s.stock < -0.005 ? '<div class="empty">Poraba presega vpisana polnjenja – manjka račun za polnjenje ali začetno stanje.</div>' : ''}
+      <div class="kv"><span>Iztočeno</span><b>${fmt(s.l)} l</b></div>
+      <div class="kv"><span>Skupaj računi (${s.n})</span><b>${fmt(s.e)} €</b></div>
+      <div class="kv"><span>Povprečna cena</span><b>${s.l ? fmt(s.avg, 3) + ' €/l' : '—'}</b></div>
+      <div class="kv"><span>Povprečno iztočeno na dan</span><b>${fmt(s.l / days, 1)} l</b></div>
+      ${s.stock < -0.005 ? '<div class="empty">Iztočeno je več, kot je prostornina cisterne – preveri vnose ali označi novo cisterno.</div>' : ''}
     </div>`;
   }
   const cards = ps.map((p, i) => ({ p, i })).filter(x => x.i > 0 || x.p.items.length).reverse();
-  $('tank-periods').innerHTML = cards.length ? cards.map(x => periodCard(x.p, x.i, ps.length - 1)).join('') : '<div class="empty">Ni še nobenih zapisov.</div>';
+  $('tank-periods').innerHTML = cards.length ? cards.map(x => periodCard(x.p, x.i, ps.length - 1)).join('') : '<div class="empty">Ni še nobenih računov.</div>';
 }
 
 function periodCard(p, i, last) {
-  const s = pstat(p), cap = p.mark ? (p.mark.cap || 1000) : 0;
-  const title = p.mark ? `Cisterna ${fmt(cap, 0)} l` : 'Pred označeno cisterno';
-  const sub = p.mark ? 'od ' + fmtDate(new Date(p.mark.t)) + (i === last ? ' · aktualna' : '') : '';
-  let rows = '';
-  if (p.mark && s.start) rows += `<div class="kv"><span>Začetno stanje</span><b>${fmt(s.start)} l</b></div>`;
-  if (s.fn) rows += `<div class="kv"><span>Polnjenja cisterne (${s.fn})</span><b>${fmt(s.fl)} l · ${fmt(s.fe)} €</b></div><div class="kv"><span>Povprečna cena</span><b>${fmt(s.avg, 3)} €/l</b></div>`;
-  if (s.un) rows += `<div class="kv"><span>Poraba iz cisterne (${s.un})</span><b>${fmt(s.ul)} l${s.fl ? ' · ≈ ' + fmt(s.val) + ' €' : ''}</b></div>`;
+  const s = pstat(p);
+  const title = p.mark ? `Cisterna ${fmt(s.cap, 0)} l` : 'Pred označeno cisterno';
+  let sub = '';
+  if (p.mark) sub = 'od ' + fmtDate(new Date(p.mark.t)) + (p.end ? ' do ' + fmtDate(new Date(p.end)) : '') + (i === last ? ' · aktualna' : '');
+  let rows = s.n
+    ? `<div class="kv"><span>Računov</span><b>${s.n}</b></div><div class="kv"><span>Iztočeno</span><b>${fmt(s.l)} l</b></div><div class="kv"><span>Povprečna cena</span><b>${fmt(s.avg, 3)} €/l</b></div>`
+    : '<div class="kv"><span>Ni računov</span></div>';
   if (p.mark) rows += `<div class="kv"><span>Preostalo v cisterni</span><b>${fmt(s.stock)} l</b></div>`;
-  if (s.pn) rows += `<div class="kv"><span>Točenja na črpalki (${s.pn})</span><b>${fmt(s.pl)} l · ${fmt(s.pe)} €</b></div>`;
-  if (!rows) rows = '<div class="kv"><span>Ni vnosov</span></div>';
-  const tl = s.fl + s.pl, te = s.fe + s.pe;
-  rows += `<div class="kv tot"><span>Skupaj računi</span><b>${fmt(te)} € · ${fmt(tl)} l</b></div>`;
+  rows += `<div class="kv tot"><span>Skupaj računi</span><b>${fmt(s.e)} €</b></div>`;
   return `<div class="per"><h3>${title}<span>${sub}</span></h3>${rows}</div>`;
 }
 
 /* ---------- Zgodovina ---------- */
-function setFilter(f) {
-  filter = f;
-  document.querySelectorAll('#filters button').forEach(b => b.setAttribute('aria-pressed', b.dataset.f === f));
-  renderLog();
-}
-
 function renderLog() {
-  const bills = log.filter(x => x.k === 'pump' || x.k === 'fill');
+  const bills = log.filter(x => x.k === 'bill');
   const n = new Date(), ym = n.getFullYear() * 12 + n.getMonth();
   const mon = bills.filter(x => { const t = new Date(x.t); return t.getFullYear() * 12 + t.getMonth() === ym; });
   const sum = bills.reduce((a, x) => a + x.tot, 0), lit = bills.reduce((a, x) => a + x.l, 0);
   const msum = mon.reduce((a, x) => a + x.tot, 0), mlit = mon.reduce((a, x) => a + x.l, 0);
   $('log-sum').textContent = bills.length ? 'Vsi računi: ' + bills.length : 'Ni shranjenih računov';
   $('hist-stats').innerHTML = bills.length ? `
-    <div class="kv"><span>Skupaj plačano</span><b>${fmt(sum)} €</b></div>
-    <div class="kv"><span>Skupaj litrov</span><b>${fmt(lit)} l</b></div>
+    <div class="kv"><span>Skupaj računi</span><b>${fmt(sum)} €</b></div>
+    <div class="kv"><span>Skupaj iztočeno</span><b>${fmt(lit)} l</b></div>
     <div class="kv"><span>Povprečna cena</span><b>${lit ? fmt(sum / lit, 3) : '—'} €/l</b></div>
     <div class="kv"><span>Ta mesec</span><b>${fmt(msum)} € · ${fmt(mlit)} l</b></div>` : '';
 
-  const list = log.filter(x => filter === 'all' || (filter === 'bills' ? (x.k === 'pump' || x.k === 'fill') : x.k !== 'pump')).sort(sortDesc);
+  const list = [...log].sort(sortDesc);
   $('log').innerHTML = list.length ? list.map(x => {
     const dt = fmtDate(new Date(x.t));
     const act = `<div class="acts"><button class="x" onclick="${x.k === 'mark' ? `openMark(${x.id})` : `openEdit(${x.id})`}" aria-label="Uredi" title="Uredi">${EDIT_IC}</button>${x.k === 'mark' ? '' : `<button class="x" onclick="delEntry(${x.id})" aria-label="Izbriši" title="Izbriši">×</button>`}</div>`;
-    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.s ? ' · začetno ' + fmt(x.s) + ' l' : ''}</span></div>${act}</div>`;
+    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}</span></div>${act}</div>`;
     const note = x.n ? `<span class="nt">${esc(x.n)}</span>` : '';
-    if (x.k === 'use') return `<div class="li"><span class="dot use"></span><div class="lt"><b>${fmt(x.l)} l</b><span class="meta">${dt} · ${KIND.use}</span>${note}</div>${act}</div>`;
-    return `<div class="li"><span class="dot ${x.k}"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${KIND[x.k]} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}</div>${act}</div>`;
+    return `<div class="li"><span class="dot bill"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}</div>${act}</div>`;
   }).join('') : '<div class="empty">Ni zapisov.</div>';
 }
 
@@ -652,34 +589,27 @@ function exportCsv() {
   const c = v => String(v).replace('.', ',');
   const q = s => '"' + String(s).replace(/"/g, '""') + '"';
   const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek [€]', 'Opomba']];
-  [...log].sort(sortAsc).forEach(x => rows.push([iso(new Date(x.t)), KIND[x.k], c(x.k === 'mark' ? (x.cap || 1000) : x.l), x.k === 'pump' || x.k === 'fill' ? c(x.p) : '', x.d ? c(x.d) : '', x.k === 'pump' || x.k === 'fill' ? c(x.tot.toFixed(2)) : '', q(x.n || '')]));
+  [...log].sort(sortAsc).forEach(x => rows.push(x.k === 'mark'
+    ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', '', '""']
+    : [iso(new Date(x.t)), 'Račun', c(x.l), c(x.p), x.d ? c(x.d) : '', c(x.tot.toFixed(2)), q(x.n || '')]));
   const blob = new Blob(['\ufeff' + rows.map(r => r.join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'dizel-' + iso(new Date()) + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
 }
 
-/* ---------- Urejanje zapisa ---------- */
+/* ---------- Urejanje računa ---------- */
 function openEdit(id) {
   const x = log.find(e => e.id === id);
   if (!x) return;
   editId = id;
   $('e-date').value = iso(new Date(x.t));
-  $('e-kind').value = x.k;
   $('e-price').value = x.p || '';
   $('e-liters').value = x.l;
-  $('e-liters2').value = x.l;
   $('e-disc').value = x.d || 0;
   $('e-note').value = x.n || '';
-  editKindUI();
-  $('editDlg').showModal();
-}
-
-function editKindUI() {
-  const use = $('e-kind').value === 'use';
-  $('e-money').hidden = use; $('e-discwrap').hidden = use; $('e-totwrap').hidden = use;
-  $('e-uselit').hidden = !use;
   editPreview();
+  $('editDlg').showModal();
 }
 
 function editPreview() {
@@ -692,29 +622,27 @@ function closeEdit() { editId = null; $('editDlg').close(); }
 function saveEdit() {
   const x = log.find(e => e.id === editId);
   if (!x) { closeEdit(); return; }
-  const k = $('e-kind').value, use = k === 'use';
-  const l = num(use ? $('e-liters2').value : $('e-liters').value);
-  const price = use ? 0 : num($('e-price').value), disc = use ? 0 : Math.max(0, num($('e-disc').value));
-  if (!l || (!use && !price)) { showToast(use ? 'Vnesi količino v litrih.' : 'Vnesi ceno in količino goriva.'); return; }
+  const price = num($('e-price').value), l = num($('e-liters').value), disc = Math.max(0, num($('e-disc').value));
+  if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
   const ds = $('e-date').value;
   if (!ds) { showToast('Izberi datum.'); return; }
   const old = new Date(x.t), nd = parseISO(ds);
   nd.setHours(old.getHours(), old.getMinutes(), old.getSeconds());
   x.t = nd.toISOString();
-  x.k = k; x.p = price; x.l = l; x.d = disc;
+  x.p = price; x.l = l; x.d = disc;
   x.n = $('e-note').value.trim().slice(0, 200);
-  x.tot = use ? 0 : lineTot(price, l, disc);
+  x.tot = lineTot(price, l, disc);
   saveLog();
   closeEdit();
-  showToast('Zapis je posodobljen.');
+  showToast('Račun je posodobljen.');
 }
 
 function deleteFromEdit() {
-  if (!confirm('Želiš izbrisati ta zapis?')) return;
+  if (!confirm('Želiš izbrisati ta račun?')) return;
   log = log.filter(e => e.id !== editId);
   saveLog();
   closeEdit();
-  showToast('Zapis je izbrisan.');
+  showToast('Račun je izbrisan.');
 }
 
 /* ---------- Nova cisterna (označba) ---------- */
@@ -724,22 +652,21 @@ function openMark(id) {
   $('mark-title').textContent = x ? 'Uredi označbo cisterne' : 'Nova cisterna';
   $('m-date').value = x ? iso(new Date(x.t)) : iso(new Date());
   $('m-cap').value = x ? (x.cap || 1000) : 1000;
-  $('m-start').value = x ? (x.s || 0) : 0;
   $('m-del').hidden = !x;
   $('markDlg').showModal();
 }
 function closeMark() { markId = null; $('markDlg').close(); }
 
 function saveMark() {
-  const ds = $('m-date').value, cap = num($('m-cap').value), st = Math.max(0, num($('m-start').value));
+  const ds = $('m-date').value, cap = num($('m-cap').value);
   if (!ds) { showToast('Izberi datum.'); return; }
   if (cap <= 0) { showToast('Vnesi prostornino cisterne.'); return; }
   const t = parseISO(ds).toISOString();
   if (markId) {
     const x = log.find(e => e.id === markId);
-    if (x) { x.t = t; x.cap = cap; x.s = st; }
+    if (x) { x.t = t; x.cap = cap; }
   } else {
-    log.push({ id: Date.now(), t, k: 'mark', cap, s: st, l: 0, p: 0, d: 0, n: '', tot: 0 });
+    log.push({ id: Date.now(), t, k: 'mark', cap, l: 0, p: 0, d: 0, n: '', tot: 0 });
   }
   saveLog();
   closeMark();
@@ -747,7 +674,7 @@ function saveMark() {
 }
 
 function deleteMark() {
-  if (!confirm('Odstranim označbo? Zapisi ostanejo, le združijo se s prejšnjim obdobjem.')) return;
+  if (!confirm('Odstranim označbo? Računi ostanejo, le združijo se s prejšnjim obdobjem.')) return;
   log = log.filter(e => e.id !== markId);
   saveLog();
   closeMark();
@@ -930,9 +857,6 @@ function loadSavedData() {
   if ([1, 3, 6, 12].includes(savedRange)) range = savedRange;
   document.querySelectorAll('#ranges button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.m === range));
 
-  const sk = ls('save_kind');
-  setSaveKind(sk === 'fill' ? 'fill' : 'pump');
-  $('u-date').value = iso(new Date());
 
   loadInputs();
   calculate();
