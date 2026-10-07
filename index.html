@@ -640,6 +640,18 @@ function statRows(s) {
   return out;
 }
 
+function activePeriod() { const ps = periods(); return ps.length > 1 ? ps[ps.length - 1] : null; }
+
+function updateStockHint() {
+  const el = $('stock-hint');
+  if (!el) return;
+  const act = activePeriod();
+  if (!act) { el.textContent = 'Cisterna še ni označena – glej zavihek Cisterna.'; el.className = 'hint'; return; }
+  const s = pstat(act), l = num($('liters').value);
+  if (l > s.stock + 0.005) { el.textContent = 'Pozor: v cisterni je po evidenci še ' + fmt(Math.max(0, s.stock)) + ' l, vnesel si ' + fmt(l) + ' l.'; el.className = 'hint st warn'; }
+  else { el.textContent = 'V cisterni je po evidenci še ' + fmt(s.stock, 0) + ' l od ' + fmt(s.cap, 0) + ' l.'; el.className = 'hint'; }
+}
+
 function renderTank() {
   const ps = periods(), act = ps.length > 1 ? ps[ps.length - 1] : null;
   const box = $('tank-active');
