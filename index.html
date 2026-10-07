@@ -584,32 +584,27 @@ function pstat(p) {
   s.cn = s.cg / (1 + VAT);
   s.rn = s.e / (1 + VAT);
   const share = s.cap ? Math.min(1, s.l / s.cap) : 0;
-  s.pg = s.e - s.cg * share;          /* zaslužek na iztočeno, z DDV */
-  s.pn = s.rn - s.cn * share;         /* zaslužek na iztočeno, brez DDV */
-  s.bn = s.rn - s.cn;                 /* bilanca cisterne (prihodek − celotna nabava), brez DDV */
+  s.pg = s.e - s.cn * share;          /* zaslužek na iztočeno: računi (z DDV) − nabavna vrednost iztočenega */
+  s.bn = s.e - s.cn;                  /* bilanca cisterne: računi − celotna nabava */
   return s;
 }
 const pc = v => v < -0.005 ? ' neg' : v > 0.005 ? ' save' : '';
 const kvr = (l, v, c = '') => `<div class="kv"><span>${l}</span><b${c ? ` class="${c}"` : ''}>${v}</b></div>`;
 
 /* Nastavitve prikaza (shranjene na napravi) */
-const SDEF = { liters: 1, revenue: 1, avg: 1, buyLiter: 1, buyTotal: 0, profitNet: 1, profitGross: 0, profitLiter: 1, balance: 0, shVat: 1, shNote: 1 };
+const SDEF = { liters: 1, revenue: 1, avg: 1, buyTotal: 1, profit: 1, profitLiter: 1, balance: 0, shNote: 1 };
 let S = Object.assign({}, SDEF);
 const SET_GROUPS = [
   ['Cisterna – prodaja', [
     ['liters', 'Iztočeni litri', 'Koliko goriva je šlo iz cisterne'],
-    ['revenue', 'Vrednost računov (z DDV)', 'Seštevek vseh računov v cisterni'],
-    ['avg', 'Povprečna prodajna cena', '€/l z DDV']]],
-  ['Cisterna – nabava', [
-    ['buyLiter', 'Nabavna cena na liter (neto)', 'Neto cena goriva brez DDV'],
-    ['buyTotal', 'Nabava cele cisterne (brez DDV)', 'Skupni neto strošek nabave']]],
-  ['Cisterna – zaslužek', [
-    ['profitNet', 'Zaslužek brez DDV', 'Prodano minus nabavna vrednost iztočenega'],
-    ['profitGross', 'Zaslužek z DDV', 'Isto, vendar z DDV'],
-    ['profitLiter', 'Zaslužek na liter', 'Povprečni zaslužek na iztočeni liter (brez DDV)'],
-    ['balance', 'Bilanca cele cisterne', 'Prihodek minus celotna nabava (brez DDV)']]],
+    ['revenue', 'Vrednost računov', 'Seštevek vseh računov v cisterni'],
+    ['avg', 'Povprečna prodajna cena', '€/l']]],
+  ['Cisterna – nabava in zaslužek', [
+    ['buyTotal', 'Nabava cisterne brez DDV', 'Samo informativno: nabavna cena, ki si jo dobil'],
+    ['profit', 'Zaslužek', 'Računi (z DDV in popustom) minus nabavna vrednost iztočenega'],
+    ['profitLiter', 'Zaslužek na liter', 'Povprečni zaslužek na iztočeni liter'],
+    ['balance', 'Bilanca cele cisterne', 'Računi minus celotna nabava cisterne']]],
   ['Deljenje računov', [
-    ['shVat', 'Razčleni DDV', 'V deljenem računu prikaži znesek brez DDV in DDV'],
     ['shNote', 'Dodaj opombo', 'V deljenem računu prikaži opombo']]]
 ];
 function loadSettings() {
@@ -627,37 +622,22 @@ function resetSettings() { S = Object.assign({}, SDEF); ls('dizel_settings', JSO
 function statRows(s) {
   let out = '', sale = '';
   if (S.liters) sale += kvr('Iztočeno', fmt(s.l) + ' l');
-  if (S.revenue) sale += kvr(`Računi (${s.n}) z DDV`, fmt(s.e) + ' €');
+  if (S.revenue) sale += kvr(`Računi (${s.n})`, fmt(s.e) + ' €');
   if (S.avg) sale += kvr('Povprečna prodajna cena', s.l ? fmt(s.avg, 3) + ' €/l' : '—');
   if (sale) out += `<div class="blk"><div class="grp">Prodaja</div>${sale}</div>`;
   if (!s.cap) return out;
-  const needCost = S.buyLiter || S.buyTotal || S.profitNet || S.profitGross || S.profitLiter || S.balance;
+  const needCost = S.buyTotal || S.profit || S.profitLiter || S.balance;
   if (!s.cg) { if (needCost) out += '<div class="empty">Nabavna cena cisterne ni vpisana. Vpiši jo z gumbom ✎ Uredi cisterno.</div>'; return out; }
-  let b = '';
-  if (S.buyLiter) b += kvr('Nabavna cena goriva (neto)', fmt(s.cn / s.cap, 3) + ' €/l');
-  if (S.buyTotal) b += kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €');
-  if (b) out += `<div class="blk"><div class="grp">Nabava</div>${b}</div>`;
+  if (S.buyTotal) out += `<div class="blk"><div class="grp">Nabava</div>${kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €')}</div>`;
   const items = [];
-  if (S.profitNet) items.push(['brez DDV', s.pn, fmt(s.pn) + ' €']);
-  if (S.profitGross) items.push(['z DDV', s.pg, fmt(s.pg) + ' €']);
-  if (S.profitLiter) items.push(['na liter (brez DDV)', s.l ? s.pn : 0, s.l ? fmt(s.pn / s.l, 3) + ' €/l' : '—']);
+  if (S.profit) items.push(['Zaslužek', s.pg, fmt(s.pg) + ' €']);
+  if (S.profitLiter) items.push(['Zaslužek na liter', s.l ? s.pg : 0, s.l ? fmt(s.pg / s.l, 3) + ' €/l' : '—']);
   if (items.length) {
     const f = items[0];
-    out += `<div class="profit"><div><small>Zaslužek do zdaj · ${f[0]}</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr('Zaslužek ' + r[0], r[2], pc(r[1]).trim())).join('')}</div>`;
+    out += `<div class="profit"><div><small>${f[0]} do zdaj</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr(r[0], r[2], pc(r[1]).trim())).join('')}</div>`;
   }
-  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Prihodek minus celotna nabava, brez DDV.</p></div>`;
+  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Računi minus celotna nabava cisterne.</p></div>`;
   return out;
-}
-function activePeriod() { const ps = periods(); return ps.length > 1 ? ps[ps.length - 1] : null; }
-
-function updateStockHint() {
-  const el = $('stock-hint');
-  if (!el) return;
-  const act = activePeriod();
-  if (!act) { el.textContent = 'Cisterna še ni označena – glej zavihek Cisterna.'; el.className = 'hint'; return; }
-  const s = pstat(act), l = num($('liters').value);
-  if (l > s.stock + 0.005) { el.textContent = 'Pozor: v cisterni je po evidenci še ' + fmt(Math.max(0, s.stock)) + ' l, vnesel si ' + fmt(l) + ' l.'; el.className = 'hint st warn'; }
-  else { el.textContent = 'V cisterni je po evidenci še ' + fmt(s.stock, 0) + ' l od ' + fmt(s.cap, 0) + ' l.'; el.className = 'hint'; }
 }
 
 function renderTank() {
@@ -711,7 +691,7 @@ function renderLog() {
   $('log').innerHTML = list.length ? list.map(x => {
     const dt = fmtDate(new Date(x.t));
     const act = `<div class="acts">${x.k === 'mark' ? '' : `<button class="x" onclick="shareBill(${x.id})" aria-label="Deli" title="Deli"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>`}<button class="x" onclick="${x.k === 'mark' ? `openMark(${x.id})` : `openEdit(${x.id})`}" aria-label="Uredi" title="Uredi">${EDIT_IC}</button>${x.k === 'mark' ? '' : `<button class="x" onclick="delEntry(${x.id})" aria-label="Izbriši" title="Izbriši">×</button>`}</div>`;
-    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.cg ? ' · neto nabava ' + fmt(x.cg / (1 + VAT) / (x.cap || 1000), 3) + ' €/l (' + fmt(x.cg / (1 + VAT)) + ' € brez DDV)' : ''}</span></div>${act}</div>`;
+    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.cg ? ' · nabava ' + fmt(x.cg / (1 + VAT)) + ' € brez DDV' : ''}</span></div>${act}</div>`;
     const note = x.n ? `<span class="nt">${esc(x.n)}</span>` : '';
     return `<div class="li"><span class="dot bill"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}</div>${act}</div>`;
   }).join('') : '<div class="empty">Ni zapisov.</div>';
@@ -720,10 +700,10 @@ function renderLog() {
 function csvFor(list) {
   const c = v => String(v).replace('.', ',');
   const q = s => '"' + String(s).replace(/"/g, '""') + '"';
-  const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek z DDV [€]', 'Znesek brez DDV [€]', 'Opomba']];
+  const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek [€]', 'Opomba']];
   [...list].sort(sortAsc).forEach(x => rows.push(x.k === 'mark'
-    ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', x.cg ? c(x.cg.toFixed(2)) : '', x.cg ? c((x.cg / (1 + VAT)).toFixed(2)) : '', '']
-    : [iso(new Date(x.t)), 'Račun', c(x.l), c(x.p), x.d ? c(x.d) : '', c(x.tot.toFixed(2)), c((x.tot / (1 + VAT)).toFixed(2)), q(x.n || '')]));
+    ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', x.cg ? c((x.cg / (1 + VAT)).toFixed(2)) : '', 'Nabava brez DDV']
+    : [iso(new Date(x.t)), 'Račun', c(x.l), c(x.p), x.d ? c(x.d) : '', c(x.tot.toFixed(2)), q(x.n || '')]));
   return '\ufeff' + rows.map(r => r.join(';')).join('\n');
 }
 
@@ -761,8 +741,7 @@ async function shareOut(title, text, file) {
 function billText(x) {
   const L = ['⛽ Račun za dizel', 'Datum: ' + fmtDate(new Date(x.t)), 'Količina: ' + fmt(x.l) + ' l', 'Cena: ' + fmt(x.p, 3) + ' €/l'];
   if (x.d) L.push('Popust: ' + fmt(x.d, 1) + ' centov/l');
-  L.push('Znesek za plačilo: ' + fmt(x.tot) + ' €');
-  if (S.shVat) { const n = x.tot / (1 + VAT); L.push('  brez DDV: ' + fmt(n) + ' €', '  DDV (22 %): ' + fmt(x.tot - n) + ' €'); }
+  L.push('Znesek: ' + fmt(x.tot) + ' €');
   if (S.shNote && x.n) L.push('Opomba: ' + x.n);
   return L.join('\n');
 }
@@ -810,7 +789,6 @@ function listText(b, title) {
     if (S.shNote && x.n) L.push('   ' + x.n);
   });
   L.push('', 'Skupaj: ' + b.length + ' · ' + fmt(lit) + ' l · ' + fmt(sum) + ' €');
-  if (S.shVat) { const n = sum / (1 + VAT); L.push('brez DDV: ' + fmt(n) + ' € · DDV (22 %): ' + fmt(sum - n) + ' €'); }
   return L.join('\n');
 }
 async function shareDo(mode) {
