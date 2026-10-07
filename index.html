@@ -114,6 +114,20 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 .kv.sub{padding-left:10px;font-size:12px}
 .pills{display:flex;gap:8px;flex-wrap:wrap}
 .pills .link{padding:8px 12px;background:var(--soft);border-radius:11px}
+.grp{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--mu)}
+.blk{display:grid;gap:10px}
+.profit{display:grid;gap:8px;padding:16px 18px;border-radius:20px;border:1.5px solid color-mix(in srgb,var(--ac) 55%,transparent)}
+.profit small{font-size:12px;font-weight:700;color:var(--mu)}
+.profit .big{font-size:30px}
+.profit .big.neg{color:var(--up)}
+.profit .kv{font-size:12.5px}
+.setgrp{display:grid;margin-top:4px}
+.setrow{justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+.setrow span{display:grid;gap:2px;font-size:13px}
+.setrow span em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--mu)}
+.setgrp .grp{padding-bottom:4px}
+.pills .link{display:inline-flex;align-items:center;gap:6px}
+.pills .link .ic{width:14px;height:14px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 #toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,10px);background:var(--card);border:1px solid var(--line);color:var(--tx);padding:10px 18px;border-radius:14px;font-size:12.5px;font-weight:600;box-shadow:var(--sh);opacity:0;pointer-events:none;transition:all .3s;text-align:center;max-width:90vw;z-index:10}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -140,6 +154,9 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
       <div class="row" style="gap:8px">
         <button id="installAppBtn" class="ib" onclick="installPWA()" title="Namesti aplikacijo" aria-label="Namesti aplikacijo">
           <svg class="ic" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        </button>
+        <button class="ib" onclick="openSettings()" title="Nastavitve" aria-label="Nastavitve">
+          <svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <button class="ib" onclick="toggleTheme()" title="Preklopi svetel / temen način" aria-label="Preklopi svetel / temen način">
           <svg class="ic i-sun" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -198,6 +215,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
           <textarea id="note" class="in pl" maxlength="200" rows="1" placeholder="npr. stranka, vozilo, številka računa"></textarea>
         </div>
         <button class="savebtn pri" onclick="saveEntry()">Shrani račun (iztočeno iz cisterne)</button>
+        <button class="savebtn" onclick="shareCurrent()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Deli račun</button>
       </div>
 
       <div class="sec">
@@ -223,7 +241,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
       <div id="tank-active"></div>
       <div class="pills" id="tank-actions"><button class="link" onclick="openMark()">⛽ Nova cisterna</button></div>
       <div class="sec">
-        <div><h2>Statistika po cisternah</h2><p class="hint">Seštevek iztočenih litrov, računov (s DDV) in zaslužka od označbe nove cisterne naprej.</p></div>
+        <div><h2>Statistika po cisternah</h2><p class="hint">Pregled po cisternah. Kaj se prikazuje, nastaviš v nastavitvah (⚙).</p></div>
         <div style="display:grid;gap:10px" id="tank-periods"></div>
       </div>
     </section>
@@ -235,7 +253,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
         <div id="hist-stats" style="display:grid;gap:10px"></div>
       </div>
       <div class="sec">
-        <div class="row"><h2>Računi</h2><button class="link" onclick="exportCsv()">↓ Izvozi CSV</button></div>
+        <div class="row"><h2>Računi</h2><div class="pills" style="gap:6px"><button class="link" onclick="openShare()"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Deli</button><button class="link" onclick="exportCsv()">↓ CSV</button></div></div>
         <div class="log" id="log"></div>
       </div>
     </section>
@@ -268,27 +286,66 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
   <dialog id="markDlg" aria-labelledby="mark-title">
     <div style="display:grid;gap:16px">
       <div class="row"><h1 id="mark-title" style="font-size:20px">Nova cisterna</h1><button class="x" onclick="closeMark()" aria-label="Zapri">×</button></div>
-      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo, polno cisterno. Starejši računi ostanejo v prejšnjem obdobju.</p>
+      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo cisterno. Vnesi skupno ceno ali pa ceno na liter – aplikacija sama preračuna ostalo.</p>
       <div class="g2">
         <div><label class="lab" for="m-date">Začetek (datum)</label><input id="m-date" class="in pl" type="date"></div>
-        <div><label class="lab" for="m-cap">Prostornina [l]</label><input id="m-cap" class="in pl" type="number" step="1" inputmode="decimal" value="1000" oninput="markPreview()"></div>
+        <div><label class="lab" for="m-cap">Količina goriva [l]</label><input id="m-cap" class="in pl" type="number" step="1" inputmode="decimal" value="1000" oninput="markPreview()" onkeypress="allowComma(event)"></div>
       </div>
-      <div>
-        <label class="lab" for="m-cost">Plačano za to cisterno goriva (nabava)</label>
-        <div class="seg sm" id="m-mode" style="margin-bottom:8px">
-          <button data-v="gross" aria-pressed="true" onclick="setMMode('gross')">Vnos z DDV (22 %)</button>
-          <button data-v="net" aria-pressed="false" onclick="setMMode('net')">Vnos brez DDV</button>
+      <div style="display:grid;gap:8px">
+        <label class="lab" style="margin:0" for="m-cost" id="m-cost-lab">Plačano za celo cisterno goriva</label>
+        <div class="seg sm" id="m-q">
+          <button data-v="total" aria-pressed="true" onclick="setMQ('total')">Cena cisterne</button>
+          <button data-v="liter" aria-pressed="false" onclick="setMQ('liter')">Cena na liter</button>
+        </div>
+        <div class="seg sm" id="m-mode">
+          <button data-v="gross" aria-pressed="true" onclick="setMMode('gross')">z DDV (22 %)</button>
+          <button data-v="net" aria-pressed="false" onclick="setMMode('net')">neto (brez DDV)</button>
         </div>
         <div class="field">
           <input id="m-cost" class="in" type="number" step="0.01" inputmode="decimal" oninput="markPreview()" onkeypress="allowComma(event)" placeholder="0,00">
-          <span class="unit">€</span>
+          <span class="unit" id="m-unit">€</span>
         </div>
-        <div class="per" id="m-prev" style="margin-top:10px" hidden></div>
+        <div class="per" id="m-prev" hidden></div>
       </div>
       <div class="btns">
         <button class="btn" onclick="closeMark()">Prekliči</button>
         <button class="btn pri" onclick="saveMark()">Shrani</button>
         <button class="btn dng" id="m-del" onclick="deleteMark()">Odstrani označbo</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Nastavitve -->
+  <dialog id="setDlg" aria-labelledby="set-title">
+    <div style="display:grid;gap:12px">
+      <div class="row"><h1 id="set-title" style="font-size:20px">Nastavitve</h1><button class="x" onclick="$('setDlg').close()" aria-label="Zapri">×</button></div>
+      <p class="hint" style="margin:0">Izberi, kaj naj aplikacija prikazuje in preračunava pri cisterni.</p>
+      <div id="set-body"></div>
+      <div class="btns">
+        <button class="btn" onclick="resetSettings()">Privzeto</button>
+        <button class="btn pri" onclick="$('setDlg').close()">Končano</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Deljenje računov -->
+  <dialog id="shareDlg" aria-labelledby="share-title">
+    <div style="display:grid;gap:16px">
+      <div class="row"><h1 id="share-title" style="font-size:20px">Deli račune</h1><button class="x" onclick="$('shareDlg').close()" aria-label="Zapri">×</button></div>
+      <p class="hint" style="margin:0">Pošlji račune stranki, računovodji ali sodelavcu prek aplikacij v telefonu (SMS, e-pošta, WhatsApp …) ali kot CSV datoteko. Posamezen račun deliš z ikono v zgodovini.</p>
+      <div><label class="lab" for="s-range">Kateri računi</label>
+        <select id="s-range" class="in pl" onchange="sharePreview()">
+          <option value="all">Vsi računi</option>
+          <option value="month">Ta mesec</option>
+          <option value="tank">Aktualna cisterna</option>
+        </select>
+      </div>
+      <div class="etot"><span id="s-count">0 računov</span><b id="s-sum">0,00 €</b></div>
+      <div class="btns">
+        <button class="btn pri" onclick="shareDo('text')">Deli besedilo</button>
+        <button class="btn" onclick="shareDo('csv')">Deli CSV</button>
+        <button class="btn" onclick="shareDo('copy')">Kopiraj besedilo</button>
+        <button class="btn" onclick="$('shareDlg').close()">Zapri</button>
       </div>
     </div>
   </dialog>
@@ -302,7 +359,7 @@ const fmt = (n, d = 2) => n.toLocaleString('sl-SI', { minimumFractionDigits: d, 
 const PUMP = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h8v16zM8 6h4v4H8V6zm11.29-2.29a1 1 0 0 0-1.42 0L15.17 6.3a1 1 0 0 0 0 1.42l1.42 1.42a1 1 0 0 0 1.42 0l2.71-2.71a1 1 0 0 0 0-1.42zM17 10.41V13a3 3 0 0 1-3 3h-1v2h1a5 5 0 0 0 5-5v-2.59z';
 
 const VAT = 0.22;
-let mMode = 'gross';
+let mMode = 'gross', mQ = 'total';
 let tab = 'calc', range = 3, chart = null, deferredPrompt = null, appReady = false;
 const D = { price: '', discount: '0', useDiscount: false, hist: [] };
 
@@ -533,16 +590,63 @@ function pstat(p) {
   return s;
 }
 const pc = v => v < -0.005 ? ' neg' : v > 0.005 ? ' save' : '';
-function costRows(s) {
-  if (!s.cg) return s.cap ? '<div class="kv"><span>Nabavna cena cisterne</span><b>ni vpisana</b></div>' : '';
-  return `<div class="kv"><span>Nabava cisterne z DDV</span><b>${fmt(s.cg)} €</b></div>
-    <div class="kv"><span>Nabava cisterne brez DDV</span><b>${fmt(s.cn)} €</b></div>
-    <div class="kv sub"><span>neto nabavna cena</span><b>${fmt(s.cn / s.cap, 3)} €/l</b></div>
-    <div class="kv"><span>Računi brez DDV</span><b>${fmt(s.rn)} €</b></div>
-    <div class="kv"><span>Zaslužek na iztočeno (brez DDV)</span><b class="${pc(s.pn).trim()}">${fmt(s.pn)} €</b></div>
-    <div class="kv sub"><span>na liter</span><b>${s.l ? fmt(s.pn / s.l, 3) + ' €/l' : '—'}</b></div>
-    <div class="kv"><span>Zaslužek na iztočeno (z DDV)</span><b class="${pc(s.pg).trim()}">${fmt(s.pg)} €</b></div>
-    <div class="kv"><span>Bilanca cisterne (brez DDV)</span><b class="${pc(s.bn).trim()}">${fmt(s.bn)} €</b></div>`;
+const kvr = (l, v, c = '') => `<div class="kv"><span>${l}</span><b${c ? ` class="${c}"` : ''}>${v}</b></div>`;
+
+/* Nastavitve prikaza (shranjene na napravi) */
+const SDEF = { liters: 1, revenue: 1, avg: 1, buyLiter: 1, buyTotal: 0, profitNet: 1, profitGross: 0, profitLiter: 1, balance: 0, shVat: 1, shNote: 1 };
+let S = Object.assign({}, SDEF);
+const SET_GROUPS = [
+  ['Cisterna – prodaja', [
+    ['liters', 'Iztočeni litri', 'Koliko goriva je šlo iz cisterne'],
+    ['revenue', 'Vrednost računov (z DDV)', 'Seštevek vseh računov v cisterni'],
+    ['avg', 'Povprečna prodajna cena', '€/l z DDV']]],
+  ['Cisterna – nabava', [
+    ['buyLiter', 'Nabavna cena na liter (neto)', 'Neto cena goriva brez DDV'],
+    ['buyTotal', 'Nabava cele cisterne (brez DDV)', 'Skupni neto strošek nabave']]],
+  ['Cisterna – zaslužek', [
+    ['profitNet', 'Zaslužek brez DDV', 'Prodano minus nabavna vrednost iztočenega'],
+    ['profitGross', 'Zaslužek z DDV', 'Isto, vendar z DDV'],
+    ['profitLiter', 'Zaslužek na liter', 'Povprečni zaslužek na iztočeni liter (brez DDV)'],
+    ['balance', 'Bilanca cele cisterne', 'Prihodek minus celotna nabava (brez DDV)']]],
+  ['Deljenje računov', [
+    ['shVat', 'Razčleni DDV', 'V deljenem računu prikaži znesek brez DDV in DDV'],
+    ['shNote', 'Dodaj opombo', 'V deljenem računu prikaži opombo']]]
+];
+function loadSettings() {
+  try { const r = JSON.parse(ls('dizel_settings')); if (r) Object.keys(SDEF).forEach(k => { if (k in r) S[k] = r[k] ? 1 : 0; }); } catch (e) {}
+}
+function setSetting(k, v) { S[k] = v ? 1 : 0; ls('dizel_settings', JSON.stringify(S)); renderTank(); }
+function openSettings() {
+  $('set-body').innerHTML = SET_GROUPS.map(g => `<div class="setgrp"><div class="grp">${g[0]}</div>${g[1].map(i =>
+    `<label class="sw setrow"><span>${i[1]}<em>${i[2]}</em></span><input type="checkbox" role="switch" ${S[i[0]] ? 'checked' : ''} onchange="setSetting('${i[0]}',this.checked)"><i></i></label>`).join('')}</div>`).join('');
+  $('setDlg').showModal();
+}
+function resetSettings() { S = Object.assign({}, SDEF); ls('dizel_settings', JSON.stringify(S)); openSettings(); renderTank(); }
+
+/* Prikaz statistike cisterne po nastavitvah */
+function statRows(s) {
+  let out = '', sale = '';
+  if (S.liters) sale += kvr('Iztočeno', fmt(s.l) + ' l');
+  if (S.revenue) sale += kvr(`Računi (${s.n}) z DDV`, fmt(s.e) + ' €');
+  if (S.avg) sale += kvr('Povprečna prodajna cena', s.l ? fmt(s.avg, 3) + ' €/l' : '—');
+  if (sale) out += `<div class="blk"><div class="grp">Prodaja</div>${sale}</div>`;
+  if (!s.cap) return out;
+  const needCost = S.buyLiter || S.buyTotal || S.profitNet || S.profitGross || S.profitLiter || S.balance;
+  if (!s.cg) { if (needCost) out += '<div class="empty">Nabavna cena cisterne ni vpisana. Vpiši jo z gumbom ✎ Uredi cisterno.</div>'; return out; }
+  let b = '';
+  if (S.buyLiter) b += kvr('Nabavna cena goriva (neto)', fmt(s.cn / s.cap, 3) + ' €/l');
+  if (S.buyTotal) b += kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €');
+  if (b) out += `<div class="blk"><div class="grp">Nabava</div>${b}</div>`;
+  const items = [];
+  if (S.profitNet) items.push(['brez DDV', s.pn, fmt(s.pn) + ' €']);
+  if (S.profitGross) items.push(['z DDV', s.pg, fmt(s.pg) + ' €']);
+  if (S.profitLiter) items.push(['na liter (brez DDV)', s.l ? s.pn : 0, s.l ? fmt(s.pn / s.l, 3) + ' €/l' : '—']);
+  if (items.length) {
+    const f = items[0];
+    out += `<div class="profit"><div><small>Zaslužek do zdaj · ${f[0]}</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr('Zaslužek ' + r[0], r[2], pc(r[1]).trim())).join('')}</div>`;
+  }
+  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Prihodek minus celotna nabava, brez DDV.</p></div>`;
+  return out;
 }
 function activePeriod() { const ps = periods(); return ps.length > 1 ? ps[ps.length - 1] : null; }
 
@@ -559,23 +663,19 @@ function updateStockHint() {
 function renderTank() {
   const ps = periods(), act = ps.length > 1 ? ps[ps.length - 1] : null;
   const box = $('tank-active');
+  $('tank-actions').innerHTML = `<button class="link" onclick="openMark()">⛽ ${act ? 'Nova cisterna' : 'Začni z novo cisterno'}</button>`
+    + (act ? `<button class="link" onclick="openMark(${act.mark.id})">✎ Uredi cisterno</button>` : '')
+    + '<button class="link" onclick="openSettings()">⚙ Prikaz podatkov</button>';
   if (!act) {
-    box.innerHTML = `<div class="empty">Cisterna še ni označena.<br>Ko začneš točiti iz nove 1000 l cisterne, označi začetek – računi in iztočeni litri se bodo od takrat seštevali ločeno.</div>`;
-    $('tank-actions').firstElementChild.textContent = '⛽ Začni z novo cisterno';
+    box.innerHTML = `<div class="empty">Cisterna še ni označena.<br>Ko začneš točiti iz nove cisterne, označi začetek – računi in iztočeni litri se bodo od takrat seštevali ločeno.</div>`;
   } else {
-    $('tank-actions').firstElementChild.textContent = '⛽ Nova cisterna';
     const s = pstat(act);
     const pct = Math.max(0, Math.min(100, s.stock / s.cap * 100));
-    const days = Math.max(1, Math.ceil((Date.now() - new Date(act.mark.t)) / 864e5));
-    box.innerHTML = `<div style="display:grid;gap:14px">
+    box.innerHTML = `<div style="display:grid;gap:16px">
       <div class="tankhead"><div><small>Preostalo v cisterni</small><div class="big">${fmt(Math.max(0, s.stock), 0)} l</div></div><small>od ${fmt(s.cap, 0)} l · ${fmt(pct, 0)} %</small></div>
       <div class="gauge${pct < 15 ? ' low' : ''}"><i style="width:${pct}%"></i></div>
-      <div class="kv"><span>Nova cisterna od</span><b>${fmtDate(new Date(act.mark.t))}</b></div>
-      <div class="kv"><span>Iztočeno</span><b>${fmt(s.l)} l</b></div>
-      <div class="kv"><span>Skupaj računi (${s.n})</span><b>${fmt(s.e)} €</b></div>
-      <div class="kv"><span>Povprečna cena</span><b>${s.l ? fmt(s.avg, 3) + ' €/l' : '—'}</b></div>
-      <div class="kv"><span>Povprečno iztočeno na dan</span><b>${fmt(s.l / days, 1)} l</b></div>
-      ${costRows(s)}
+      <p class="hint" style="margin:-6px 0 0">Cisterna od ${fmtDate(new Date(act.mark.t))}</p>
+      ${statRows(s)}
       ${s.stock < -0.005 ? '<div class="empty">Iztočeno je več, kot je prostornina cisterne – preveri vnose ali označi novo cisterno.</div>' : ''}
     </div>`;
   }
@@ -588,12 +688,8 @@ function periodCard(p, i, last) {
   const title = p.mark ? `Cisterna ${fmt(s.cap, 0)} l` : 'Pred označeno cisterno';
   let sub = '';
   if (p.mark) sub = 'od ' + fmtDate(new Date(p.mark.t)) + (p.end ? ' do ' + fmtDate(new Date(p.end)) : '') + (i === last ? ' · aktualna' : '');
-  let rows = s.n
-    ? `<div class="kv"><span>Računov</span><b>${s.n}</b></div><div class="kv"><span>Iztočeno</span><b>${fmt(s.l)} l</b></div><div class="kv"><span>Povprečna cena</span><b>${fmt(s.avg, 3)} €/l</b></div>`
-    : '<div class="kv"><span>Ni računov</span></div>';
-  if (p.mark) rows += `<div class="kv"><span>Preostalo v cisterni</span><b>${fmt(s.stock)} l</b></div>`;
-  rows += costRows(s);
-  rows += `<div class="kv tot"><span>Skupaj računi</span><b>${fmt(s.e)} €</b></div>`;
+  let rows = (p.mark ? kvr('Preostalo v cisterni', fmt(s.stock) + ' l') : '') + statRows(s);
+  if (!rows) rows = '<div class="kv"><span>Vsi podatki so izklopljeni v nastavitvah.</span></div>';
   return `<div class="per"><h3>${title}<span>${sub}</span></h3>${rows}</div>`;
 }
 
@@ -614,25 +710,118 @@ function renderLog() {
   const list = [...log].sort(sortDesc);
   $('log').innerHTML = list.length ? list.map(x => {
     const dt = fmtDate(new Date(x.t));
-    const act = `<div class="acts"><button class="x" onclick="${x.k === 'mark' ? `openMark(${x.id})` : `openEdit(${x.id})`}" aria-label="Uredi" title="Uredi">${EDIT_IC}</button>${x.k === 'mark' ? '' : `<button class="x" onclick="delEntry(${x.id})" aria-label="Izbriši" title="Izbriši">×</button>`}</div>`;
-    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.cg ? ' · nabava ' + fmt(x.cg) + ' € z DDV (' + fmt(x.cg / (1 + VAT)) + ' € brez DDV)' : ''}</span></div>${act}</div>`;
+    const act = `<div class="acts">${x.k === 'mark' ? '' : `<button class="x" onclick="shareBill(${x.id})" aria-label="Deli" title="Deli"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>`}<button class="x" onclick="${x.k === 'mark' ? `openMark(${x.id})` : `openEdit(${x.id})`}" aria-label="Uredi" title="Uredi">${EDIT_IC}</button>${x.k === 'mark' ? '' : `<button class="x" onclick="delEntry(${x.id})" aria-label="Izbriši" title="Izbriši">×</button>`}</div>`;
+    if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.cg ? ' · neto nabava ' + fmt(x.cg / (1 + VAT) / (x.cap || 1000), 3) + ' €/l (' + fmt(x.cg / (1 + VAT)) + ' € brez DDV)' : ''}</span></div>${act}</div>`;
     const note = x.n ? `<span class="nt">${esc(x.n)}</span>` : '';
     return `<div class="li"><span class="dot bill"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}</div>${act}</div>`;
   }).join('') : '<div class="empty">Ni zapisov.</div>';
 }
 
-function exportCsv() {
-  if (!log.length) { showToast('Ni zapisov za izvoz.'); return; }
+function csvFor(list) {
   const c = v => String(v).replace('.', ',');
   const q = s => '"' + String(s).replace(/"/g, '""') + '"';
-  const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek [€]', 'Opomba']];
-  [...log].sort(sortAsc).forEach(x => rows.push(x.k === 'mark'
-    ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', x.cg ? c(x.cg.toFixed(2)) : '', q(x.cg ? 'Nabava z DDV; brez DDV: ' + (x.cg / (1 + VAT)).toFixed(2).replace('.', ',') + ' EUR' : '')]
-    : [iso(new Date(x.t)), 'Račun', c(x.l), c(x.p), x.d ? c(x.d) : '', c(x.tot.toFixed(2)), q(x.n || '')]));
-  const blob = new Blob(['\ufeff' + rows.map(r => r.join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+  const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek z DDV [€]', 'Znesek brez DDV [€]', 'Opomba']];
+  [...list].sort(sortAsc).forEach(x => rows.push(x.k === 'mark'
+    ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', x.cg ? c(x.cg.toFixed(2)) : '', x.cg ? c((x.cg / (1 + VAT)).toFixed(2)) : '', '']
+    : [iso(new Date(x.t)), 'Račun', c(x.l), c(x.p), x.d ? c(x.d) : '', c(x.tot.toFixed(2)), c((x.tot / (1 + VAT)).toFixed(2)), q(x.n || '')]));
+  return '\ufeff' + rows.map(r => r.join(';')).join('\n');
+}
+
+function downloadBlob(blob, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'dizel-' + iso(new Date()) + '.csv';
+  a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
+}
+
+function exportCsv() {
+  if (!log.length) { showToast('Ni zapisov za izvoz.'); return; }
+  downloadBlob(new Blob([csvFor(log)], { type: 'text/csv;charset=utf-8' }), 'dizel-' + iso(new Date()) + '.csv');
+}
+
+/* ---------- Deljenje računov ---------- */
+function copyText(t) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+  const ta = document.createElement('textarea');
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
+async function shareOut(title, text, file) {
+  try {
+    if (navigator.share) {
+      const data = file ? { title, files: [file] } : { title, text };
+      if (!file || (navigator.canShare && navigator.canShare(data))) { await navigator.share(data); return; }
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  if (file) { downloadBlob(file, file.name); showToast('Deljenje ni podprto – datoteka je prenesena.'); }
+  else { await copyText(text); showToast('Deljenje ni podprto – besedilo je kopirano.'); }
+}
+
+function billText(x) {
+  const L = ['⛽ Račun za dizel', 'Datum: ' + fmtDate(new Date(x.t)), 'Količina: ' + fmt(x.l) + ' l', 'Cena: ' + fmt(x.p, 3) + ' €/l'];
+  if (x.d) L.push('Popust: ' + fmt(x.d, 1) + ' centov/l');
+  L.push('Znesek za plačilo: ' + fmt(x.tot) + ' €');
+  if (S.shVat) { const n = x.tot / (1 + VAT); L.push('  brez DDV: ' + fmt(n) + ' €', '  DDV (22 %): ' + fmt(x.tot - n) + ' €'); }
+  if (S.shNote && x.n) L.push('Opomba: ' + x.n);
+  return L.join('\n');
+}
+
+function shareBill(id) {
+  const x = log.find(e => e.id === id);
+  if (x) shareOut('Račun za dizel', billText(x));
+}
+
+function shareCurrent() {
+  readInputs();
+  const price = num(D.price), l = num($('liters').value);
+  if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
+  const disc = D.useDiscount ? num(D.discount) : 0;
+  shareOut('Račun za dizel', billText({ t: new Date().toISOString(), p: price, l, d: disc, n: $('note').value.trim(), tot: lineTot(price, l, disc) }));
+}
+
+const SHARE_TITLES = { all: 'Vsi računi', month: 'Ta mesec', tank: 'Aktualna cisterna' };
+function shareList() {
+  const r = $('s-range').value;
+  let b = log.filter(x => x.k === 'bill');
+  if (r === 'month') {
+    const n = new Date(), ym = n.getFullYear() * 12 + n.getMonth();
+    b = b.filter(x => { const t = new Date(x.t); return t.getFullYear() * 12 + t.getMonth() === ym; });
+  } else if (r === 'tank') { const a = activePeriod(); b = a ? a.items : []; }
+  return b.sort(sortAsc);
+}
+function openShare() {
+  const has = !!activePeriod();
+  $('s-range').querySelector('[value=tank]').disabled = !has;
+  if (!has && $('s-range').value === 'tank') $('s-range').value = 'all';
+  sharePreview();
+  $('shareDlg').showModal();
+}
+function sharePreview() {
+  const b = shareList(), sum = b.reduce((a, x) => a + x.tot, 0);
+  $('s-count').textContent = b.length + (b.length === 1 ? ' račun' : b.length === 2 ? ' računa' : b.length < 5 && b.length > 0 ? ' računi' : ' računov') + ' · ' + fmt(b.reduce((a, x) => a + x.l, 0)) + ' l';
+  $('s-sum').textContent = fmt(sum) + ' €';
+}
+function listText(b, title) {
+  const sum = b.reduce((a, x) => a + x.tot, 0), lit = b.reduce((a, x) => a + x.l, 0);
+  const L = ['⛽ Računi za dizel – ' + title, ''];
+  b.forEach(x => {
+    L.push(fmtDate(new Date(x.t)) + ' · ' + fmt(x.l) + ' l × ' + fmt(x.p, 3) + ' €' + (x.d ? ' − ' + fmt(x.d, 1) + ' c' : '') + ' = ' + fmt(x.tot) + ' €');
+    if (S.shNote && x.n) L.push('   ' + x.n);
+  });
+  L.push('', 'Skupaj: ' + b.length + ' · ' + fmt(lit) + ' l · ' + fmt(sum) + ' €');
+  if (S.shVat) { const n = sum / (1 + VAT); L.push('brez DDV: ' + fmt(n) + ' € · DDV (22 %): ' + fmt(sum - n) + ' €'); }
+  return L.join('\n');
+}
+async function shareDo(mode) {
+  const b = shareList(), title = SHARE_TITLES[$('s-range').value];
+  if (!b.length) { showToast('Ni računov za deljenje.'); return; }
+  if (mode === 'csv') {
+    const file = new File([csvFor(b)], 'dizel-racuni-' + iso(new Date()) + '.csv', { type: 'text/csv' });
+    await shareOut('Računi za dizel – ' + title, '', file);
+  } else if (mode === 'copy') {
+    await copyText(listText(b, title)); showToast('Besedilo je kopirano v odložišče.');
+  } else await shareOut('Računi za dizel – ' + title, listText(b, title));
 }
 
 /* ---------- Urejanje računa ---------- */
@@ -690,32 +879,51 @@ function setMMode(v) {
   markPreview();
 }
 
+function setMQ(v) {
+  mQ = v;
+  ls('buy_q', v);
+  document.querySelectorAll('#m-q button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  $('m-cost-lab').textContent = v === 'total' ? 'Plačano za celo cisterno goriva' : 'Cena goriva na liter';
+  $('m-unit').textContent = v === 'total' ? '€' : '€ / l';
+  $('m-cost').step = v === 'total' ? '0.01' : '0.001';
+  $('m-cost').placeholder = v === 'total' ? '0,00' : '0,000';
+  markPreview();
+}
+
+/* iz vnosa (skupaj ali na liter; z ali brez DDV) izračuna skupno ceno cisterne z in brez DDV */
 function costParts() {
-  const v = num($('m-cost').value);
+  const v = num($('m-cost').value), cap = num($('m-cap').value);
   if (v <= 0) return null;
-  return mMode === 'gross' ? { g: v, n: v / (1 + VAT) } : { g: v * (1 + VAT), n: v };
+  const tot = mQ === 'liter' ? v * cap : v;
+  if (tot <= 0) return null;
+  return mMode === 'gross' ? { g: tot, n: tot / (1 + VAT) } : { g: tot * (1 + VAT), n: tot };
 }
 
 function markPreview() {
   const c = costParts(), cap = num($('m-cap').value), el = $('m-prev');
   if (!c) { el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = `<div class="kv"><span>Cena brez DDV</span><b>${fmt(c.n)} €</b></div>
-    <div class="kv"><span>DDV (22 %)</span><b>${fmt(c.g - c.n)} €</b></div>
-    <div class="kv"><span>Cena z DDV</span><b>${fmt(c.g)} €</b></div>
-    ${cap > 0 ? `<div class="kv tot"><span>Neto cena na liter</span><b>${fmt(c.n / cap, 3)} €/l</b></div><div class="kv"><span>Cena na liter z DDV</span><b>${fmt(c.g / cap, 3)} €/l</b></div>` : ''}`;
+  const perL = cap > 0 ? kvr('Neto cena goriva', fmt(c.n / cap, 3) + ' €/l') + kvr('Cena goriva z DDV', fmt(c.g / cap, 3) + ' €/l') : '';
+  const tot = kvr('Skupaj brez DDV', fmt(c.n) + ' €') + kvr('DDV (22 %)', fmt(c.g - c.n) + ' €') + kvr('Skupaj z DDV', fmt(c.g) + ' €');
+  el.innerHTML = `<h3>Preračun<span>${cap > 0 ? fmt(cap, 0) + ' l' : ''}</span></h3>` + (mQ === 'liter' ? tot + perL : perL + tot);
 }
 
 function openMark(id) {
   const x = id ? log.find(e => e.id === id) : null;
   markId = x ? x.id : null;
-  $('mark-title').textContent = x ? 'Uredi označbo cisterne' : 'Nova cisterna';
+  $('mark-title').textContent = x ? 'Uredi cisterno' : 'Nova cisterna';
   $('m-date').value = x ? iso(new Date(x.t)) : iso(new Date());
   $('m-cap').value = x ? (x.cap || 1000) : 1000;
   mMode = x && x.cm ? x.cm : (ls('vat_mode') === 'net' ? 'net' : 'gross');
-  $('m-cost').value = x && x.cg ? (mMode === 'gross' ? x.cg : x.cg / (1 + VAT)).toFixed(2) : '';
+  mQ = x ? (x.cq || 'total') : (ls('buy_q') === 'liter' ? 'liter' : 'total');
+  let val = '';
+  if (x && x.cg) {
+    const raw = x.cin !== undefined ? x.cin : (mMode === 'gross' ? x.cg : x.cg / (1 + VAT));
+    val = +(+raw).toFixed(mQ === 'liter' ? 4 : 2);
+  }
+  $('m-cost').value = val;
   $('m-del').hidden = !x;
-  setMMode(mMode);
+  setMQ(mQ); setMMode(mMode);
   $('markDlg').showModal();
 }
 function closeMark() { markId = null; $('markDlg').close(); }
@@ -723,15 +931,16 @@ function closeMark() { markId = null; $('markDlg').close(); }
 function saveMark() {
   const ds = $('m-date').value, cap = num($('m-cap').value), c = costParts();
   if (!ds) { showToast('Izberi datum.'); return; }
-  if (cap <= 0) { showToast('Vnesi prostornino cisterne.'); return; }
+  if (cap <= 0) { showToast('Vnesi količino goriva v cisterni.'); return; }
   const t = parseISO(ds).toISOString();
   let x = markId ? log.find(e => e.id === markId) : null;
   if (!x) { x = { id: Date.now(), k: 'mark', l: 0, p: 0, d: 0, n: '', tot: 0 }; log.push(x); }
   x.t = t; x.cap = cap;
-  if (c) { x.cg = c.g; x.cm = mMode; } else { delete x.cg; delete x.cm; }
+  if (c) { x.cg = c.g; x.cm = mMode; x.cq = mQ; x.cin = num($('m-cost').value); }
+  else { delete x.cg; delete x.cm; delete x.cq; delete x.cin; }
   saveLog();
   closeMark();
-  showToast('Označba nove cisterne je shranjena.');
+  showToast('Cisterna je shranjena.');
 }
 
 function deleteMark() {
@@ -913,6 +1122,7 @@ function loadSavedData() {
   D.useDiscount = ls('diesel_use_discount') === '1';
   try { if (h) D.hist = JSON.parse(h) || []; } catch (e) { D.hist = []; }
 
+  loadSettings();
   loadLog();
   const savedRange = parseInt(ls('chart_range'), 10);
   if ([1, 3, 6, 12].includes(savedRange)) range = savedRange;
@@ -951,6 +1161,8 @@ function showToast(msg) {
 
 $('editDlg').addEventListener('click', e => { if (e.target === e.currentTarget) closeEdit(); });
 $('editDlg').addEventListener('close', () => { editId = null; });
+$('setDlg').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+$('shareDlg').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 $('markDlg').addEventListener('click', e => { if (e.target === e.currentTarget) closeMark(); });
 $('markDlg').addEventListener('close', () => { markId = null; });
 window.onload = loadSavedData;
