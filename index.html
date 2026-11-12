@@ -87,6 +87,8 @@ button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .acts{display:flex;gap:2px;flex:none}
 .lt .nt{color:var(--tx);opacity:.8;font-style:italic;white-space:normal;overflow-wrap:anywhere;font-size:12px}
 .lt .meta{overflow-wrap:anywhere}
+.month-head{padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800}.month-head span{color:var(--mu);font-weight:600}
+.receipt-thumb{max-width:110px;max-height:80px;border-radius:8px;margin-top:6px;object-fit:cover;cursor:pointer}
 .in.pl{padding-right:16px}
 textarea.in{resize:none;min-height:0;height:48px;padding-top:12px;padding-bottom:12px;font-size:14px;font-weight:600;line-height:1.3;overflow:auto}
 select.in{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%238d96a2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
@@ -132,6 +134,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,10px);background:var(--card);border:1px solid var(--line);color:var(--tx);padding:10px 18px;border-radius:14px;font-size:12.5px;font-weight:600;box-shadow:var(--sh);opacity:0;pointer-events:none;transition:all .3s;text-align:center;max-width:90vw;z-index:10}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:420px){.card{padding:20px}.big{font-size:28px}}
+@media(min-width:900px){body{align-items:flex-start;padding:32px}.wrap{max-width:1280px;gap:18px}.card{padding:34px}.card>.row:first-child{margin-bottom:2px}#p-calc{grid-template-columns:minmax(0,1fr) minmax(360px,.9fr);align-items:start;gap:30px!important}#p-calc>.fields,#p-calc>.sum{grid-column:1}#p-calc>.sec{grid-column:2;grid-row:1 / span 2}.log{max-height:70vh}.cw{height:280px}#p-hist{grid-template-columns: minmax(280px,.7fr) minmax(0,1.3fr);align-items:start}#p-hist>.sec:first-child{grid-column:1}#p-hist>.sec:last-child{grid-column:2;grid-row:1 / span 2}}
 </style>
 </head>
 
@@ -152,6 +155,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
         <p class="hint">Slovenija · podatki se shranijo na napravi</p>
       </div>
       <div class="row" style="gap:8px">
+        <button id="authBtn" class="link" onclick="googleSignIn()">Prijava z Google</button>
         <button id="installAppBtn" class="ib" onclick="installPWA()" title="Namesti aplikacijo" aria-label="Namesti aplikacijo">
           <svg class="ic" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         </button>
@@ -212,7 +216,8 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
 
         <div class="notefield">
           <label class="lab" for="note">Opomba</label>
-          <textarea id="note" class="in pl" maxlength="200" rows="1" placeholder="npr. stranka, vozilo, številka računa"></textarea>
+          <input id="note" class="in pl" maxlength="200" list="saved-notes" placeholder="npr. stranka, vozilo, številka računa"><datalist id="saved-notes"></datalist>
+          <input id="receipt-photo" type="file" accept="image/*" capture="environment" hidden onchange="readReceiptPhoto(this,'new')"><button type="button" class="link" onclick="$('receipt-photo').click()">📷 Dodaj fotografijo števca / računa</button><span id="photo-status" class="hint"></span>
         </div>
         <button class="savebtn pri" onclick="saveEntry()">Shrani račun (iztočeno iz cisterne)</button>
         <button class="savebtn" onclick="shareCurrent()" style="display:flex;align-items:center;justify-content:center;gap:8px"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Deli račun</button>
@@ -271,7 +276,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
       <div><label class="lab" for="e-disc">Popust [centi na liter]</label><input id="e-disc" class="in pl" type="number" step="0.1" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
       <div class="notefield">
         <label class="lab" for="e-note">Opomba</label>
-        <textarea id="e-note" class="in pl" maxlength="200" rows="1" placeholder="npr. stranka, vozilo"></textarea>
+        <input id="e-note" class="in pl" maxlength="200" list="saved-notes" placeholder="npr. stranka, vozilo"><input id="edit-photo" type="file" accept="image/*" hidden onchange="readReceiptPhoto(this,'edit')"><button type="button" class="link" onclick="$('edit-photo').click()">📷 Zamenjaj fotografijo</button><span id="edit-photo-status" class="hint"></span>
       </div>
       <div class="etot"><span>Znesek</span><b id="e-total">0,00 €</b></div>
       <div class="btns">
@@ -519,7 +524,13 @@ const lineTot = (p, l, d) => Math.max(0, p - d / 100) * l;
 const sortAsc = (a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : a.id - b.id;
 const sortDesc = (a, b) => -sortAsc(a, b);
 
-function saveLog() { ls('dizel_log', JSON.stringify(log)); renderLog(); renderTank(); updateStockHint(); }
+let newPhoto = '', editPhoto = '';
+function saveLog() { ls('dizel_log', JSON.stringify(log)); renderLog(); renderTank(); updateStockHint(); renderNoteChoices(); window.dispatchEvent(new CustomEvent('fuel-log-changed',{detail:log})); }
+function resizePhoto(file) { return new Promise((resolve,reject)=>{ const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const scale=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);resolve(c.toDataURL('image/jpeg',.76));};im.onerror=reject;im.src=u; }); }
+async function readReceiptPhoto(input,where) { const file=input.files&&input.files[0];if(!file)return;try{const data=await resizePhoto(file);if(where==='new'){newPhoto=data;$('photo-status').textContent='Fotografija pripravljena. Prepoznavam prikaz…';}else{editPhoto=data;$('edit-photo-status').textContent='Fotografija pripravljena.';}await recognizeLiters(data,where);}catch(e){showToast('Fotografije ni bilo mogoče prebrati.');} }
+async function recognizeLiters(data,where){try{if(!window.Tesseract){await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s);});}const r=await Tesseract.recognize(data,'eng');const text=r.data.text.replace(/\s/g,' ').replace(/,/g,'.');const vals=[...text.matchAll(/\b(\d{1,5}(?:\.\d{1,3})?)\b/g)].map(m=>Number(m[1])).filter(n=>n>0&&n<10000);if(vals.length){const dest=where==='new'?'liters':'e-liters';$(dest).value=String(vals.sort((a,b)=>b-a)[0]);if(where==='new')calculate();else editPreview();if(where==='new')$('photo-status').textContent='Prepoznano – preveri količino pred shranjevanjem.';}else showToast('Litrov nisem prepoznal; vnesi jih ročno.');}catch(e){showToast('Samodejno branje ni uspelo; količino vnesi ročno.');}}
+function renderNoteChoices(){const opts=[...new Set(log.filter(x=>x.k==='bill').map(x=>(x.n||'').trim()).filter(Boolean))];$('saved-notes').innerHTML=opts.map(n=>`<option value="${esc(n)}"></option>`).join('');}
+function openPhoto(data){if(data)window.open(data,'_blank','noopener');}
 
 function loadLog() {
   let raw = ls('dizel_log'), changed = false;
@@ -550,9 +561,10 @@ function saveEntry() {
   const disc = D.useDiscount ? num(D.discount) : 0;
   const act = activePeriod();
   const over = act && l > pstat(act).stock + 0.005;
-  log.push({ id: Date.now(), t: new Date().toISOString(), k: 'bill', p: price, l, d: disc, n: $('note').value.trim().slice(0, 200), tot: lineTot(price, l, disc) });
+  log.push({ id: Date.now(), t: new Date().toISOString(), k: 'bill', p: price, l, d: disc, n: $('note').value.trim().slice(0, 200), photo:newPhoto||'', tot: lineTot(price, l, disc) });
   saveLog();
   $('note').value = '';
+  newPhoto='';$('photo-status').textContent='';$('receipt-photo').value='';
   showToast(over ? 'Račun je shranjen. Pozor: iztočeno je več, kot je po evidenci bilo v cisterni.' : 'Račun je shranjen.');
 }
 
@@ -700,13 +712,14 @@ function renderLog() {
     <div class="kv"><span>Ta mesec</span><b>${fmt(msum)} € · ${fmt(mlit)} l</b></div>` : '';
 
   const list = [...log].sort(sortDesc);
-  $('log').innerHTML = list.length ? list.map(x => {
+  const grouped=new Map();list.forEach(x=>{const d=new Date(x.t),key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(x);});
+  $('log').innerHTML = list.length ? [...grouped.entries()].map(([key,rows])=>{const monthBills=rows.filter(x=>x.k==='bill'),mLit=monthBills.reduce((a,x)=>a+x.l,0),mTot=monthBills.reduce((a,x)=>a+x.tot,0),label=new Date(key+'-01T12:00:00').toLocaleDateString('sl-SI',{month:'long',year:'numeric'});return `<div class="month-head">${label}<span>${fmt(mLit)} l · ${fmt(mTot)} €</span></div>`+rows.map(x => {
     const dt = fmtDate(new Date(x.t));
     const act = `<div class="acts">${x.k === 'mark' ? '' : `<button class="x" onclick="shareBill(${x.id})" aria-label="Deli" title="Deli"><svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>`}<button class="x" onclick="${x.k === 'mark' ? `openMark(${x.id})` : `openEdit(${x.id})`}" aria-label="Uredi" title="Uredi">${EDIT_IC}</button>${x.k === 'mark' ? '' : `<button class="x" onclick="delEntry(${x.id})" aria-label="Izbriši" title="Izbriši">×</button>`}</div>`;
     if (x.k === 'mark') return `<div class="li mk"><span class="dot mark"></span><div class="lt"><b>Nova cisterna ${fmt(x.cap || 1000, 0)} l</b><span class="meta">od ${dt}${x.cg ? ' · nabava ' + fmt(x.cg / (1 + VAT)) + ' € brez DDV' : ''}</span></div>${act}</div>`;
     const note = x.n ? `<span class="nt">${esc(x.n)}</span>` : '';
-    return `<div class="li"><span class="dot bill"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}</div>${act}</div>`;
-  }).join('') : '<div class="empty">Ni zapisov.</div>';
+    return `<div class="li"><span class="dot bill"></span><div class="lt"><b>${fmt(x.tot)} €</b><span class="meta">${dt} · ${fmt(x.l)} l × ${fmt(x.p, 3)} €${x.d ? ' − ' + fmt(x.d, 1) + ' c' : ''}</span>${note}${x.photo?`<img class="receipt-thumb" src="${x.photo}" alt="Fotografija računa" onclick="openPhoto(this.src)">`:''}</div>${act}</div>`;
+  }).join('');}).join('') : '<div class="empty">Ni zapisov.</div>';
 }
 
 function csvFor(list) {
@@ -824,6 +837,7 @@ function openEdit(id) {
   $('e-liters').value = x.l;
   $('e-disc').value = x.d || 0;
   $('e-note').value = x.n || '';
+  editPhoto=x.photo||'';$('edit-photo-status').textContent=editPhoto?'Fotografija je shranjena.':'';
   editPreview();
   $('editDlg').showModal();
 }
@@ -847,10 +861,12 @@ function saveEdit() {
   x.t = nd.toISOString();
   x.p = price; x.l = l; x.d = disc;
   x.n = $('e-note').value.trim().slice(0, 200);
+  x.photo=editPhoto;
   x.tot = lineTot(price, l, disc);
   saveLog();
   closeEdit();
   showToast('Račun je posodobljen.');
+  editPhoto='';
 }
 
 function deleteFromEdit() {
@@ -1156,6 +1172,18 @@ $('shareDlg').addEventListener('click', e => { if (e.target === e.currentTarget)
 $('markDlg').addEventListener('click', e => { if (e.target === e.currentTarget) closeMark(); });
 $('markDlg').addEventListener('close', () => { markId = null; });
 window.onload = loadSavedData;
+</script>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getFirestore,doc,onSnapshot,setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {getStorage,ref,uploadString,getDownloadURL} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
+const firebaseConfig={apiKey:'AIzaSyDrwx4gQx-ps_kunJjA_mgpl_FWr_fIT2s',authDomain:'gorivo-aplikacija.firebaseapp.com',projectId:'gorivo-aplikacija',storageBucket:'gorivo-aplikacija.firebasestorage.app',messagingSenderId:'834188205281',appId:'1:834188205281:web:33f80e28972a5a6fdc6ba0'};
+let auth,db,storage,stop=null,lastRemote='';
+{const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);storage=getStorage(app);onAuthStateChanged(auth,user=>{const b=$('authBtn');if(!user){if(stop)stop();b.textContent='Prijava z Google';b.onclick=googleSignIn;return;}b.textContent='Odjava · '+(user.displayName||user.email);b.onclick=()=>signOut(auth);const ref=doc(db,'users',user.uid,'apps','dizel');stop=onSnapshot(ref,s=>{if(s.exists()){const data=s.data().log||[],str=JSON.stringify(data);if(str!==JSON.stringify(log)){log=data;ls('dizel_log',str);renderLog();renderTank();renderNoteChoices();}lastRemote=str;}else if(log.length)syncToCloud(user,log,ref).catch(()=>showToast('Sinhronizacija ni uspela.'));},()=>showToast('Firestore ni dosegljiv; preveri nastavitve in pravila.'));});}
+window.googleSignIn=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){showToast('Prijava ni uspela: '+e.message);}};
+async function syncToCloud(user,entries,documentRef=doc(db,'users',user.uid,'apps','dizel')){const cloud=[];for(const item of entries){const copy={...item};if(typeof copy.photo==='string'&&copy.photo.startsWith('data:image/')){const photoRef=ref(storage,`users/${user.uid}/dizel/${copy.id}.jpg`);await uploadString(photoRef,copy.photo,'data_url');copy.photo=await getDownloadURL(photoRef);}cloud.push(copy);}const str=JSON.stringify(cloud);await setDoc(documentRef,{log:cloud});lastRemote=str;}
+window.addEventListener('fuel-log-changed',e=>{const user=auth?.currentUser;if(!user)return;const str=JSON.stringify(e.detail);if(str===lastRemote)return;syncToCloud(user,e.detail).catch(()=>showToast('Sinhronizacija ni uspela; preveri Firestore in Storage pravila.'));});
 </script>
 </body>
 </html>
