@@ -558,7 +558,7 @@ function loadLog() {
 
 function saveEntry() {
   const price = num(D.price), l = num($('liters').value);
-  if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
+  if (!Number.isFinite(price) || !Number.isFinite(l) || price <= 0 || l <= 0) { showToast('Vnesi ceno in količino goriva.'); return; }
   const disc = D.useDiscount ? num(D.discount) : 0;
   const act = activePeriod();
   const over = act && l > pstat(act).stock + 0.005;
@@ -596,27 +596,30 @@ function pstat(p) {
   s.cg = p.mark && p.mark.cg ? p.mark.cg : 0;
   s.cn = s.cg / (1 + VAT);
   s.rn = s.e / (1 + VAT);
-  const share = s.cap ? Math.min(1, s.l / s.cap) : 0;
-  s.pg = s.e - s.cn * share;          /* zaslužek na iztočeno: računi (z DDV) − nabavna vrednost iztočenega */
-  s.bn = s.e - s.cn;                  /* bilanca cisterne: računi − celotna nabava */
+  const share = s.cap ? s.l / s.cap : 0;
+  s.pg = s.rn - s.cn * share;          /* razlika brez DDV za dejansko iztočeno količino */
+  s.bn = s.rn - s.cn;                  /* bilanca cisterne: računi − celotna nabava */
   return s;
 }
 const pc = v => v < -0.005 ? ' neg' : v > 0.005 ? ' save' : '';
 const kvr = (l, v, c = '') => `<div class="kv"><span>${l}</span><b${c ? ` class="${c}"` : ''}>${v}</b></div>`;
 
 /* Nastavitve prikaza (shranjene na napravi) */
-const SDEF = { liters: 1, revenue: 1, avg: 1, buyTotal: 1, profit: 1, profitLiter: 1, balance: 0, shNote: 1 };
+const SDEF = { liters: 1, revenue: 1, avg: 1, buyTotal: 1, buyLiterNet: 1, stockValue: 1, avgNet: 0, profit: 1, profitLiter: 1, balance: 0, shNote: 1 };
 let S = Object.assign({}, SDEF);
 const SET_GROUPS = [
   ['Cisterna – prodaja', [
     ['liters', 'Iztočeni litri', 'Koliko goriva je šlo iz cisterne'],
     ['revenue', 'Vrednost računov', 'Seštevek vseh računov v cisterni'],
-    ['avg', 'Povprečna prodajna cena', '€/l']]],
+    ['avgNet', 'Povprečna prodajna cena brez DDV', 'Tehtano povprečje po količini, po popustih'],
+    ['avg', 'Povprečna prodajna cena z DDV', '€/l po popustih']]],
   ['Cisterna – nabava in zaslužek', [
     ['buyTotal', 'Nabava cisterne brez DDV', 'Samo informativno: nabavna cena, ki si jo dobil'],
-    ['profit', 'Zaslužek', 'Računi (z DDV in popustom) minus nabavna vrednost iztočenega'],
-    ['profitLiter', 'Zaslužek na liter', 'Povprečni zaslužek na iztočeni liter'],
-    ['balance', 'Bilanca cele cisterne', 'Računi minus celotna nabava cisterne']]],
+    ['buyLiterNet', 'Nabavna cena na liter brez DDV', 'Nabava brez DDV / začetna količina goriva'],
+    ['stockValue', 'Vrednost preostale zaloge brez DDV', 'Preostali litri × nabavna cena brez DDV'],
+    ['profit', 'Zaslužek brez DDV', 'Prodaja minus nabava iztočenega, oboje brez DDV; brez drugih stroškov'],
+    ['profitLiter', 'Zaslužek na liter', 'Razlika brez DDV na iztočeni liter; brez drugih stroškov'],
+    ['balance', 'Bilanca cele cisterne', 'Računi brez DDV minus celotna nabava brez DDV']]],
   ['Deljenje računov', [
     ['shNote', 'Dodaj opombo', 'V deljenem računu prikaži opombo']]]
 ];
@@ -636,20 +639,25 @@ function statRows(s) {
   let out = '', sale = '';
   if (S.liters) sale += kvr('Iztočeno', fmt(s.l) + ' l');
   if (S.revenue) sale += kvr(`Računi (${s.n})`, fmt(s.e) + ' €');
-  if (S.avg) sale += kvr('Povprečna prodajna cena', s.l ? fmt(s.avg, 3) + ' €/l' : '—');
+  if (S.avg) sale += kvr('Povprečna prodajna cena z DDV', s.l ? fmt(s.avg, 3) + ' €/l' : '—');
+  if (S.avgNet) sale += kvr('Povprečna prodajna cena brez DDV', s.l ? fmt(s.rn / s.l, 3) + ' €/l' : '—');
   if (sale) out += `<div class="blk"><div class="grp">Prodaja</div>${sale}</div>`;
   if (!s.cap) return out;
-  const needCost = S.buyTotal || S.profit || S.profitLiter || S.balance;
+  const needCost = S.buyTotal || S.buyLiterNet || S.stockValue || S.profit || S.profitLiter || S.balance;
   if (!s.cg) { if (needCost) out += '<div class="empty">Nabavna cena cisterne ni vpisana. Vpiši jo z gumbom ✎ Uredi cisterno.</div>'; return out; }
-  if (S.buyTotal) out += `<div class="blk"><div class="grp">Nabava</div>${kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €')}</div>`;
+  let buy = '';
+  if (S.buyTotal) buy += kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €');
+  if (S.buyLiterNet) buy += kvr('Nabavna cena na liter brez DDV', fmt(s.cn / s.cap, 3) + ' €/l');
+  if (S.stockValue) buy += kvr('Vrednost zaloge brez DDV', s.stock >= -0.005 ? fmt(Math.max(0, s.stock) * s.cn / s.cap) + ' €' : '— (preveri količine)');
+  if (buy) out += '<div class="blk"><div class="grp">Nabava</div>' + buy + '</div>';
   const items = [];
-  if (S.profit) items.push(['Zaslužek', s.pg, fmt(s.pg) + ' €']);
-  if (S.profitLiter) items.push(['Zaslužek na liter', s.l ? s.pg : 0, s.l ? fmt(s.pg / s.l, 3) + ' €/l' : '—']);
+  if (S.profit) items.push(['Zaslužek brez DDV', s.pg, fmt(s.pg) + ' €']);
+  if (S.profitLiter) items.push(['Zaslužek na liter brez DDV', s.l ? s.pg : 0, s.l ? fmt(s.pg / s.l, 3) + ' €/l' : '—']);
   if (items.length) {
     const f = items[0];
-    out += `<div class="profit"><div><small>${f[0]} do zdaj</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr(r[0], r[2], pc(r[1]).trim())).join('')}</div>`;
+    out += `<div class="profit"><div><small>${f[0]} do zdaj</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr(r[0], r[2], pc(r[1]).trim())).join('')}<p class="hint">Prodaja in nabava iztočenega brez DDV. Drugi stroški niso vključeni.</p></div>`;
   }
-  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Računi minus celotna nabava cisterne.</p></div>`;
+  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne brez DDV', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Računi brez DDV minus celotna nabava brez DDV. Preostala zaloga ni prišteta.</p></div>`;
   return out;
 }
 
@@ -780,7 +788,7 @@ function shareBill(id) {
 function shareCurrent() {
   readInputs();
   const price = num(D.price), l = num($('liters').value);
-  if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
+  if (!Number.isFinite(price) || !Number.isFinite(l) || price <= 0 || l <= 0) { showToast('Vnesi ceno in količino goriva.'); return; }
   const disc = D.useDiscount ? num(D.discount) : 0;
   shareOut('Račun za dizel', billText({ t: new Date().toISOString(), p: price, l, d: disc, n: $('note').value.trim(), tot: lineTot(price, l, disc) }));
 }
@@ -854,7 +862,7 @@ function saveEdit() {
   const x = log.find(e => e.id === editId);
   if (!x) { closeEdit(); return; }
   const price = num($('e-price').value), l = num($('e-liters').value), disc = Math.max(0, num($('e-disc').value));
-  if (!price || !l) { showToast('Vnesi ceno in količino goriva.'); return; }
+  if (!Number.isFinite(price) || !Number.isFinite(l) || price <= 0 || l <= 0) { showToast('Vnesi ceno in količino goriva.'); return; }
   const ds = $('e-date').value;
   if (!ds) { showToast('Izberi datum.'); return; }
   const old = new Date(x.t), nd = parseISO(ds);
