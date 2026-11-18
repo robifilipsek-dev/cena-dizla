@@ -292,7 +292,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
   <dialog id="markDlg" aria-labelledby="mark-title">
     <div style="display:grid;gap:16px">
       <div class="row"><h1 id="mark-title" style="font-size:20px">Nova cisterna</h1><button class="x" onclick="closeMark()" aria-label="Zapri">×</button></div>
-      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo cisterno. Vnesi skupno ceno ali pa ceno na liter – aplikacija sama preračuna ostalo.</p>
+      <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo cisterno. Vnesi ceno cisterne ali ceno na liter, z ali brez DDV – aplikacija preračuna neto strošek (DDV dobiš nazaj), zaslužek pa je prodajna cena z DDV minus ta neto strošek.</p>
       <div class="g2">
         <div><label class="lab" for="m-date">Začetek (datum)</label><input id="m-date" class="in pl" type="date"></div>
         <div><label class="lab" for="m-cap">Količina goriva [l]</label><input id="m-cap" class="in pl" type="number" step="1" inputmode="decimal" value="1000" oninput="markPreview()" onkeypress="allowComma(event)"></div>
@@ -592,34 +592,41 @@ function pstat(p) {
   s.avg = s.l ? s.e / s.l : 0;
   s.cap = p.mark ? (p.mark.cap || 1000) : 0;
   s.stock = s.cap - s.l;
-  /* nabava (cg = plačano z DDV) in zaslužek; računi za stranke so s DDV */
-  s.cg = p.mark && p.mark.cg ? p.mark.cg : 0;
-  s.cn = s.cg / (1 + VAT);
-  s.rn = s.e / (1 + VAT);
-  const share = s.cap ? s.l / s.cap : 0;
-  s.pg = s.rn - s.cn * share;          /* razlika brez DDV za dejansko iztočeno količino */
-  s.bn = s.rn - s.cn;                  /* bilanca cisterne: računi − celotna nabava */
+  /* Poslovni model: cisterno kupiš z DDV, DDV dobiš nazaj → dejanski strošek = neto nabava (cn).
+     Stranke plačajo ceno Z DDV (s popustom) → prihodek = polni znesek računov (e), DDV ostane tebi.
+     Zaslužek = zneski računov − neto nabavna vrednost iztočenih litrov. */
+  s.cg = p.mark && p.mark.cg ? p.mark.cg : 0;   /* plačano z DDV */
+  s.cn = s.cg / (1 + VAT);                       /* dejanski strošek (neto) */
+  s.vatBack = s.cg - s.cn;                       /* DDV, vrnjen pri nakupu */
+  s.unitCost = s.cap ? s.cn / s.cap : 0;         /* neto nabavna cena €/l */
+  s.costSold = s.unitCost * s.l;                 /* strošek iztočenih litrov */
+  s.pg = s.e - s.costSold;                       /* zaslužek do zdaj */
+  s.bn = s.e - s.cn;                             /* bilanca cele cisterne (preostala zaloga še ni prodana) */
+  s.stockVal = Math.max(0, s.stock) * s.unitCost;/* vrednost preostale zaloge po nabavni ceni */
+  s.avgMargin = s.l ? s.avg - s.unitCost : 0;    /* marža na liter */
+  /* ocena, če preostalo zalogo prodaš po dosedanji povprečni ceni */
+  s.proj = s.l && s.cg ? s.pg + Math.max(0, s.stock) * s.avgMargin : 0;
   return s;
 }
 const pc = v => v < -0.005 ? ' neg' : v > 0.005 ? ' save' : '';
 const kvr = (l, v, c = '') => `<div class="kv"><span>${l}</span><b${c ? ` class="${c}"` : ''}>${v}</b></div>`;
 
 /* Nastavitve prikaza (shranjene na napravi) */
-const SDEF = { liters: 1, revenue: 1, avg: 1, buyTotal: 1, buyLiterNet: 1, stockValue: 1, avgNet: 0, profit: 1, profitLiter: 1, balance: 0, shNote: 1 };
+const SDEF = { liters: 1, revenue: 1, avg: 1, buyTotal: 1, buyLiterNet: 1, stockValue: 1, profit: 1, profitLiter: 1, projected: 1, balance: 1, shNote: 1 };
 let S = Object.assign({}, SDEF);
 const SET_GROUPS = [
   ['Cisterna – prodaja', [
     ['liters', 'Iztočeni litri', 'Koliko goriva je šlo iz cisterne'],
-    ['revenue', 'Vrednost računov', 'Seštevek vseh računov v cisterni'],
-    ['avgNet', 'Povprečna prodajna cena brez DDV', 'Tehtano povprečje po količini, po popustih'],
+    ['revenue', 'Vrednost računov (z DDV)', 'Seštevek zneskov, ki so jih plačale stranke'],
     ['avg', 'Povprečna prodajna cena z DDV', '€/l po popustih']]],
   ['Cisterna – nabava in zaslužek', [
-    ['buyTotal', 'Nabava cisterne brez DDV', 'Samo informativno: nabavna cena, ki si jo dobil'],
-    ['buyLiterNet', 'Nabavna cena na liter brez DDV', 'Nabava brez DDV / začetna količina goriva'],
-    ['stockValue', 'Vrednost preostale zaloge brez DDV', 'Preostali litri × nabavna cena brez DDV'],
-    ['profit', 'Zaslužek brez DDV', 'Prodaja minus nabava iztočenega, oboje brez DDV; brez drugih stroškov'],
-    ['profitLiter', 'Zaslužek na liter', 'Razlika brez DDV na iztočeni liter; brez drugih stroškov'],
-    ['balance', 'Bilanca cele cisterne', 'Računi brez DDV minus celotna nabava brez DDV']]],
+    ['buyTotal', 'Dejanski strošek nabave (neto)', 'Cena cisterne brez DDV; DDV dobiš nazaj'],
+    ['buyLiterNet', 'Nabavna cena na liter (neto)', 'Neto nabava / količina goriva v cisterni'],
+    ['stockValue', 'Vrednost preostale zaloge', 'Preostali litri × neto nabavna cena'],
+    ['profit', 'Zaslužek do zdaj', 'Računi z DDV minus neto nabava iztočenih litrov'],
+    ['profitLiter', 'Zaslužek na liter', 'Zaslužek / iztočeni litri (prodajna cena − neto nabavna)'],
+    ['projected', 'Ocena zaslužka cele cisterne', 'Če preostalo zalogo prodaš po dosedanji povprečni ceni'],
+    ['balance', 'Bilanca cele cisterne', 'Računi z DDV minus celotna neto nabava']]],
   ['Deljenje računov', [
     ['shNote', 'Dodaj opombo', 'V deljenem računu prikaži opombo']]]
 ];
@@ -638,26 +645,27 @@ function resetSettings() { S = Object.assign({}, SDEF); ls('dizel_settings', JSO
 function statRows(s) {
   let out = '', sale = '';
   if (S.liters) sale += kvr('Iztočeno', fmt(s.l) + ' l');
-  if (S.revenue) sale += kvr(`Računi (${s.n})`, fmt(s.e) + ' €');
+  /* (prodaja je vedno z DDV – DDV ostane prodajalcu) */
+  if (S.revenue) sale += kvr(`Računi z DDV (${s.n})`, fmt(s.e) + ' €');
   if (S.avg) sale += kvr('Povprečna prodajna cena z DDV', s.l ? fmt(s.avg, 3) + ' €/l' : '—');
-  if (S.avgNet) sale += kvr('Povprečna prodajna cena brez DDV', s.l ? fmt(s.rn / s.l, 3) + ' €/l' : '—');
   if (sale) out += `<div class="blk"><div class="grp">Prodaja</div>${sale}</div>`;
   if (!s.cap) return out;
-  const needCost = S.buyTotal || S.buyLiterNet || S.stockValue || S.profit || S.profitLiter || S.balance;
+  const needCost = S.buyTotal || S.buyLiterNet || S.stockValue || S.profit || S.profitLiter || S.projected || S.balance;
   if (!s.cg) { if (needCost) out += '<div class="empty">Nabavna cena cisterne ni vpisana. Vpiši jo z gumbom ✎ Uredi cisterno.</div>'; return out; }
   let buy = '';
-  if (S.buyTotal) buy += kvr('Nabava cisterne brez DDV', fmt(s.cn) + ' €');
-  if (S.buyLiterNet) buy += kvr('Nabavna cena na liter brez DDV', fmt(s.cn / s.cap, 3) + ' €/l');
-  if (S.stockValue) buy += kvr('Vrednost zaloge brez DDV', s.stock >= -0.005 ? fmt(Math.max(0, s.stock) * s.cn / s.cap) + ' €' : '— (preveri količine)');
-  if (buy) out += '<div class="blk"><div class="grp">Nabava</div>' + buy + '</div>';
+  if (S.buyTotal) buy += kvr('Dejanski strošek nabave (neto)', fmt(s.cn) + ' €') + kvr('Plačano z DDV / DDV vrnjen', fmt(s.cg) + ' € / ' + fmt(s.vatBack) + ' €');
+  if (S.buyLiterNet) buy += kvr('Nabavna cena na liter (neto)', fmt(s.unitCost, 3) + ' €/l');
+  if (S.stockValue) buy += kvr('Vrednost preostale zaloge (neto)', s.stock >= -0.005 ? fmt(s.stockVal) + ' €' : '— (preveri količine)');
+  if (buy) out += '<div class="blk"><div class="grp">Nabava (DDV dobiš nazaj)</div>' + buy + '</div>';
   const items = [];
-  if (S.profit) items.push(['Zaslužek brez DDV', s.pg, fmt(s.pg) + ' €']);
-  if (S.profitLiter) items.push(['Zaslužek na liter brez DDV', s.l ? s.pg : 0, s.l ? fmt(s.pg / s.l, 3) + ' €/l' : '—']);
+  if (S.profit) items.push(['Zaslužek', s.pg, fmt(s.pg) + ' €']);
+  if (S.profitLiter) items.push(['Zaslužek na liter', s.l ? s.pg : 0, s.l ? fmt(s.pg / s.l, 3) + ' €/l' : '—']);
+  if (S.projected) items.push(['Ocena zaslužka cele cisterne', s.proj, s.l ? fmt(s.proj) + ' €' : '—']);
   if (items.length) {
     const f = items[0];
-    out += `<div class="profit"><div><small>${f[0]} do zdaj</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr(r[0], r[2], pc(r[1]).trim())).join('')}<p class="hint">Prodaja in nabava iztočenega brez DDV. Drugi stroški niso vključeni.</p></div>`;
+    out += `<div class="profit"><div><small>${f[0]} do zdaj</small><div class="big${f[1] < -0.005 ? ' neg' : ''}">${f[2]}</div></div>${items.slice(1).map(r => kvr(r[0], r[2], pc(r[1]).trim())).join('')}<p class="hint">Zaslužek = računi z DDV (${fmt(s.e)} €) − neto nabava iztočenih litrov (${fmt(s.costSold)} €). DDV pri prodaji je v zaslužku. Drugi stroški niso vključeni.</p></div>`;
   }
-  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne brez DDV', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Računi brez DDV minus celotna nabava brez DDV. Preostala zaloga ni prišteta.</p></div>`;
+  if (S.balance) out += `<div class="blk">${kvr('Bilanca cele cisterne', fmt(s.bn) + ' €', pc(s.bn).trim())}<p class="hint" style="margin:0">Računi z DDV minus celotna neto nabava. Preostala zaloga (${fmt(s.stockVal)} €) ni všteta.</p></div>`;
   return out;
 }
 
@@ -918,8 +926,8 @@ function markPreview() {
   const c = costParts(), cap = num($('m-cap').value), el = $('m-prev');
   if (!c) { el.hidden = true; return; }
   el.hidden = false;
-  const perL = cap > 0 ? kvr('Neto cena goriva', fmt(c.n / cap, 3) + ' €/l') + kvr('Cena goriva z DDV', fmt(c.g / cap, 3) + ' €/l') : '';
-  const tot = kvr('Skupaj brez DDV', fmt(c.n) + ' €') + kvr('DDV (22 %)', fmt(c.g - c.n) + ' €') + kvr('Skupaj z DDV', fmt(c.g) + ' €');
+  const perL = cap > 0 ? kvr('Cena na liter z DDV', fmt(c.g / cap, 3) + ' €/l') + kvr('Neto cena na liter (tvoj strošek)', fmt(c.n / cap, 3) + ' €/l', 'save') : '';
+  const tot = kvr('Skupaj z DDV (plačaš)', fmt(c.g) + ' €') + kvr('DDV 22 % (dobiš nazaj)', fmt(c.g - c.n) + ' €') + kvr('Dejanski strošek (neto)', fmt(c.n) + ' €', 'save');
   el.innerHTML = `<h3>Preračun<span>${cap > 0 ? fmt(cap, 0) + ' l' : ''}</span></h3>` + (mQ === 'liter' ? tot + perL : perL + tot);
 }
 
