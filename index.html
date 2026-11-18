@@ -176,7 +176,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
         <div>
           <div class="row" style="align-items:baseline"><label class="lab" for="fuel-price">Cena dizla [€/l]</label><span id="price-status" class="hint st" style="margin:0">Preverjam ceno …</span></div>
           <div class="field">
-            <input id="fuel-price" class="in" type="number" step="0.001" oninput="calculate()" onkeypress="allowComma(event)">
+            <input id="fuel-price" class="in" type="text" inputmode="decimal" autocomplete="off" step="0.001" oninput="calculate()">
             <span class="unit">€ / l</span>
           </div>
           <div class="row" style="margin-top:8px">
@@ -188,7 +188,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
         <div>
           <label class="lab" for="liters">Količina goriva [litri]</label>
           <div class="field">
-            <input id="liters" class="in" type="number" step="0.01" oninput="calculate()" onkeypress="allowComma(event)">
+            <input id="liters" class="in" type="text" inputmode="decimal" autocomplete="off" step="0.01" oninput="calculate()">
             <span class="unit">l</span>
           </div>
         </div>
@@ -199,7 +199,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
             <label class="sw"><span>Obračunaj popust</span><input id="use-discount" type="checkbox" role="switch" onchange="onDiscountToggle()"><i></i></label>
           </div>
           <div class="field">
-            <input id="discount" class="in" type="number" step="0.1" value="0" oninput="calculate()" onkeypress="allowComma(event)">
+            <input id="discount" class="in" type="text" inputmode="decimal" autocomplete="off" step="0.1" value="0" oninput="calculate()">
             <span class="unit">centov</span>
           </div>
         </div>
@@ -271,13 +271,13 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
       <div class="row"><h1 id="edit-title" style="font-size:20px">Uredi račun</h1><button class="x" onclick="closeEdit()" aria-label="Zapri">×</button></div>
       <div><label class="lab" for="e-date">Datum</label><input id="e-date" class="in pl" type="date"></div>
       <div class="g2">
-        <div><label class="lab" for="e-price">Cena [€/l]</label><input id="e-price" class="in pl" type="number" step="0.001" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
-        <div><label class="lab" for="e-liters">Litri</label><input id="e-liters" class="in pl" type="number" step="0.01" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
+        <div><label class="lab" for="e-price">Cena [€/l]</label><input id="e-price" class="in pl" type="text" autocomplete="off" step="0.001" inputmode="decimal" oninput="editPreview()"></div>
+        <div><label class="lab" for="e-liters">Litri</label><input id="e-liters" class="in pl" type="text" autocomplete="off" step="0.01" inputmode="decimal" oninput="editPreview()"></div>
       </div>
-      <div><label class="lab" for="e-disc">Popust [centi na liter]</label><input id="e-disc" class="in pl" type="number" step="0.1" inputmode="decimal" oninput="editPreview()" onkeypress="allowComma(event)"></div>
+      <div><label class="lab" for="e-disc">Popust [centi na liter]</label><input id="e-disc" class="in pl" type="text" autocomplete="off" step="0.1" inputmode="decimal" oninput="editPreview()"></div>
       <div class="notefield">
         <label class="lab" for="e-note">Opomba</label>
-        <input id="e-note" class="in pl" maxlength="200" list="saved-notes" placeholder="npr. stranka, vozilo"><input id="edit-photo-camera" type="file" accept="image/*" capture="environment" hidden onchange="readReceiptPhoto(this,'edit')"><input id="edit-photo-gallery" type="file" accept="image/*" hidden onchange="readReceiptPhoto(this,'edit')"><div class="pills photo-actions"><button type="button" class="link" onclick="$('edit-photo-camera').click()">📷 Fotoaparat</button><button type="button" class="link" onclick="$('edit-photo-gallery').click()">🖼️ Uvozi iz galerije</button></div><span id="edit-photo-status" class="hint"></span>
+        <input id="e-note" class="in pl" maxlength="200" list="saved-notes" placeholder="npr. stranka, vozilo"><input id="edit-photo-camera" type="file" accept="image/*" capture="environment" hidden onchange="readReceiptPhoto(this,'edit')"><input id="edit-photo-gallery" type="file" accept="image/*" hidden onchange="readReceiptPhoto(this,'edit')"><div class="pills photo-actions"><button type="button" class="link" onclick="$('edit-photo-camera').click()">📷 Fotoaparat</button><button type="button" class="link" onclick="$('edit-photo-gallery').click()">🖼️ Uvozi iz galerije</button><button type="button" class="link" onclick="editPhoto='';$('edit-photo-status').textContent='Fotografija bo odstranjena ob shranjevanju.'">🗑️ Odstrani</button></div><span id="edit-photo-status" class="hint"></span>
       </div>
       <div class="etot"><span>Znesek</span><b id="e-total">0,00 €</b></div>
       <div class="btns">
@@ -295,7 +295,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
       <p class="hint" style="margin:0">Od izbranega datuma naprej se računi in iztočeni litri štejejo za novo cisterno. Vnesi ceno cisterne ali ceno na liter, z ali brez DDV – aplikacija preračuna neto strošek (DDV dobiš nazaj), zaslužek pa je prodajna cena z DDV minus ta neto strošek.</p>
       <div class="g2">
         <div><label class="lab" for="m-date">Začetek (datum)</label><input id="m-date" class="in pl" type="date"></div>
-        <div><label class="lab" for="m-cap">Količina goriva [l]</label><input id="m-cap" class="in pl" type="number" step="1" inputmode="decimal" value="1000" oninput="markPreview()" onkeypress="allowComma(event)"></div>
+        <div><label class="lab" for="m-cap">Količina goriva [l]</label><input id="m-cap" class="in pl" type="text" autocomplete="off" step="1" inputmode="decimal" value="1000" oninput="markPreview()"></div>
       </div>
       <div style="display:grid;gap:8px">
         <label class="lab" style="margin:0" for="m-cost" id="m-cost-lab">Plačano za celo cisterno goriva</label>
@@ -308,7 +308,7 @@ dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
           <button data-v="net" aria-pressed="false" onclick="setMMode('net')">neto (brez DDV)</button>
         </div>
         <div class="field">
-          <input id="m-cost" class="in" type="number" step="0.01" inputmode="decimal" oninput="markPreview()" onkeypress="allowComma(event)" placeholder="0,00">
+          <input id="m-cost" class="in" type="text" autocomplete="off" step="0.01" inputmode="decimal" oninput="markPreview()" placeholder="0,00">
           <span class="unit" id="m-unit">€</span>
         </div>
         <div class="per" id="m-prev" hidden></div>
@@ -447,16 +447,21 @@ function switchTab(t) {
 }
 
 /* ---------- Vnos in izračun ---------- */
-function allowComma(e) {
-  if (e.key === ',') {
-    e.preventDefault();
-    const i = e.target, s = i.selectionStart, en = i.selectionEnd;
-    if (s === null) return;
-    i.value = i.value.substring(0, s) + '.' + i.value.substring(en);
-    i.selectionStart = i.selectionEnd = s + 1;
-    i.dispatchEvent(new Event('input'));
+/* Decimalna polja: sprejmejo , ali . (tudi pri lepljenju, npr. 1.234,56) */
+document.addEventListener('input', e => {
+  const i = e.target;
+  if (!i.matches || !i.matches('input[inputmode=decimal]')) return;
+  const v = i.value, pos = i.selectionStart;
+  const clean = t => { if (t.includes(',') && t.includes('.')) t = t.replace(/\./g, ''); return t.replace(/,/g, '.').replace(/[^0-9.]/g, ''); };
+  let c = clean(v);
+  const k = c.indexOf('.');
+  if (k >= 0) c = c.slice(0, k + 1) + c.slice(k + 1).replace(/\./g, '');
+  if (c !== v) {
+    const caret = Math.min(c.length, clean(v.slice(0, pos === null ? v.length : pos)).length);
+    i.value = c;
+    try { i.setSelectionRange(caret, caret); } catch (x) {}
   }
-}
+}, true);
 
 function updateDiscountUI() {
   const on = $('use-discount').checked, el = $('discount');
@@ -495,7 +500,7 @@ function calculate() {
   const liters = parseFloat($('liters').value.replace(',', '.')) || 0;
   const cents = parseFloat(D.discount) || 0;
   const eff = Math.max(0, price - (D.useDiscount ? cents / 100 : 0));
-  const base = price * liters, fin = eff * liters;
+  const base = r2(price * liters), fin = lineTot(price, liters, D.useDiscount ? cents : 0);
   tween($('base-total'), base);
   tween($('total-saving'), base - fin, '−');
   tween($('final-price'), fin);
@@ -522,16 +527,17 @@ let log = [], editId = null, markId = null;
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const num = v => parseFloat(String(v).replace(',', '.')) || 0;
 const EDIT_IC = '<svg class="ic" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
-const lineTot = (p, l, d) => Math.max(0, p - d / 100) * l;
+const r2 = v => Math.round(v * 100 + 1e-6) / 100;
+const lineTot = (p, l, d) => r2(Math.max(0, p - d / 100) * l);
 const sortAsc = (a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : a.id - b.id;
 const sortDesc = (a, b) => -sortAsc(a, b);
 
 let newPhoto = '', editPhoto = '';
-function saveLog() { ls('dizel_log', JSON.stringify(log)); renderLog(); renderTank(); updateStockHint(); renderNoteChoices(); window.dispatchEvent(new CustomEvent('fuel-log-changed',{detail:log})); }
-function resizePhoto(file) { return new Promise((resolve,reject)=>{ const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const scale=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);resolve(c.toDataURL('image/jpeg',.76));};im.onerror=reject;im.src=u; }); }
+function saveLog() { try { localStorage.setItem('dizel_log', JSON.stringify(log)); } catch (e) { setTimeout(() => showToast('Shranjevanje na napravi ni uspelo (pomnilnik je poln). Izvozi CSV in odstrani stare fotografije.'), 150); } renderLog(); renderTank(); updateStockHint(); renderNoteChoices(); window.dispatchEvent(new CustomEvent('fuel-log-changed',{detail:log})); }
+function resizePhoto(file) { return new Promise((resolve,reject)=>{ const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const scale=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*scale);c.height=Math.round(im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);resolve(c.toDataURL('image/jpeg',.7));};im.onerror=reject;im.src=u; }); }
 async function readReceiptPhoto(input,where) { const file=input.files&&input.files[0];if(!file)return;try{const data=await resizePhoto(file);if(where==='new'){newPhoto=data;$('photo-status').textContent='Fotografija pripravljena za shranjevanje.';}else{editPhoto=data;$('edit-photo-status').textContent='Fotografija pripravljena za shranjevanje.';}}catch(e){showToast('Fotografije ni bilo mogoče prebrati.');}finally{input.value='';} }
 function renderNoteChoices(){const opts=[...new Set(log.filter(x=>x.k==='bill').map(x=>(x.n||'').trim()).filter(Boolean))];$('saved-notes').innerHTML=opts.map(n=>`<option value="${esc(n)}"></option>`).join('');}
-function openPhoto(data){if(data)window.open(data,'_blank','noopener');}
+function openPhoto(data){if(!data)return;if(!data.startsWith('data:')){window.open(data,'_blank','noopener');return;}const w=window.open('about:blank','_blank');fetch(data).then(r=>r.blob()).then(b=>{const u=URL.createObjectURL(b);if(w)w.location=u;else downloadBlob(b,'racun.jpg');}).catch(()=>{if(w)w.close();showToast('Fotografije ni bilo mogoče odpreti.');});}
 
 function loadLog() {
   let raw = ls('dizel_log'), changed = false;
@@ -557,9 +563,11 @@ function loadLog() {
 }
 
 function saveEntry() {
+  readInputs();
   const price = num(D.price), l = num($('liters').value);
   if (!Number.isFinite(price) || !Number.isFinite(l) || price <= 0 || l <= 0) { showToast('Vnesi ceno in količino goriva.'); return; }
   const disc = D.useDiscount ? num(D.discount) : 0;
+  if (disc / 100 > price) { showToast('Popust ne more biti večji od cene.'); return; }
   const act = activePeriod();
   const over = act && l > pstat(act).stock + 0.005;
   log.push({ id: Date.now(), t: new Date().toISOString(), k: 'bill', p: price, l, d: disc, n: $('note').value.trim().slice(0, 200), photo:newPhoto||'', tot: lineTot(price, l, disc) });
@@ -637,7 +645,7 @@ function setSetting(k, v) { S[k] = v ? 1 : 0; ls('dizel_settings', JSON.stringif
 function openSettings() {
   $('set-body').innerHTML = SET_GROUPS.map(g => `<div class="setgrp"><div class="grp">${g[0]}</div>${g[1].map(i =>
     `<label class="sw setrow"><span>${i[1]}<em>${i[2]}</em></span><input type="checkbox" role="switch" ${S[i[0]] ? 'checked' : ''} onchange="setSetting('${i[0]}',this.checked)"><i></i></label>`).join('')}</div>`).join('');
-  $('setDlg').showModal();
+  if (!$('setDlg').open) $('setDlg').showModal();
 }
 function resetSettings() { S = Object.assign({}, SDEF); ls('dizel_settings', JSON.stringify(S)); openSettings(); renderTank(); }
 
@@ -741,7 +749,7 @@ function renderLog() {
 
 function csvFor(list) {
   const c = v => String(v).replace('.', ',');
-  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const q = s => { let t = String(s); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
   const rows = [['Datum', 'Vrsta', 'Litri', 'Cena [€/l]', 'Popust [c/l]', 'Znesek [€]', 'Opomba']];
   [...list].sort(sortAsc).forEach(x => rows.push(x.k === 'mark'
     ? [iso(new Date(x.t)), 'Nova cisterna', c(x.cap || 1000), '', '', x.cg ? c((x.cg / (1 + VAT)).toFixed(2)) : '', 'Nabava brez DDV']
@@ -871,6 +879,7 @@ function saveEdit() {
   if (!x) { closeEdit(); return; }
   const price = num($('e-price').value), l = num($('e-liters').value), disc = Math.max(0, num($('e-disc').value));
   if (!Number.isFinite(price) || !Number.isFinite(l) || price <= 0 || l <= 0) { showToast('Vnesi ceno in količino goriva.'); return; }
+  if (disc / 100 > price) { showToast('Popust ne more biti večji od cene.'); return; }
   const ds = $('e-date').value;
   if (!ds) { showToast('Izberi datum.'); return; }
   const old = new Date(x.t), nd = parseISO(ds);
@@ -1197,7 +1206,7 @@ import {getFirestore,doc,onSnapshot,setDoc} from 'https://www.gstatic.com/fireba
 import {getStorage,ref,uploadString,getDownloadURL} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 const firebaseConfig={apiKey:'AIzaSyDrwx4gQx-ps_kunJjA_mgpl_FWr_fIT2s',authDomain:'gorivo-aplikacija.firebaseapp.com',projectId:'gorivo-aplikacija',storageBucket:'gorivo-aplikacija.firebasestorage.app',messagingSenderId:'834188205281',appId:'1:834188205281:web:33f80e28972a5a6fdc6ba0'};
 let auth,db,storage,stop=null,lastRemote='';
-{const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);storage=getStorage(app);onAuthStateChanged(auth,user=>{const b=$('authBtn');if(!user){if(stop)stop();b.textContent='Prijava z Google';b.onclick=googleSignIn;return;}b.textContent='Odjava · '+(user.displayName||user.email);b.onclick=()=>signOut(auth);const ref=doc(db,'users',user.uid,'apps','dizel');stop=onSnapshot(ref,s=>{if(s.exists()){const data=s.data().log||[],str=JSON.stringify(data);if(str!==JSON.stringify(log)){log=data;ls('dizel_log',str);renderLog();renderTank();renderNoteChoices();}lastRemote=str;}else if(log.length)syncToCloud(user,log,ref).catch(()=>showToast('Sinhronizacija ni uspela.'));},()=>showToast('Firestore ni dosegljiv; preveri nastavitve in pravila.'));});}
+{const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);storage=getStorage(app);onAuthStateChanged(auth,user=>{const b=$('authBtn');if(!user){if(stop)stop();b.textContent='Prijava z Google';b.onclick=googleSignIn;return;}b.textContent='Odjava · '+(user.displayName||user.email);b.onclick=()=>signOut(auth);let first=true;const ref=doc(db,'users',user.uid,'apps','dizel');stop=onSnapshot(ref,s=>{if(s.exists()){let data=s.data().log||[];if(first){first=false;if(log.length&&data.length&&JSON.stringify(data)!==JSON.stringify(log)){const ids=new Set(data.map(x=>x.id)),extra=log.filter(x=>!ids.has(x.id));if(extra.length){data=[...data,...extra];log=data;ls('dizel_log',JSON.stringify(data));renderLog();renderTank();renderNoteChoices();syncToCloud(user,data,ref).catch(()=>showToast('Sinhronizacija ni uspela.'));showToast('Lokalni računi so združeni z oblačnimi.');return;}}}const str=JSON.stringify(data);if(str!==JSON.stringify(log)){log=data;ls('dizel_log',str);renderLog();renderTank();renderNoteChoices();}lastRemote=str;}else if(first=false,log.length)syncToCloud(user,log,ref).catch(()=>showToast('Sinhronizacija ni uspela.'));},()=>showToast('Firestore ni dosegljiv; preveri nastavitve in pravila.'));});}
 window.googleSignIn=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){showToast('Prijava ni uspela: '+e.message);}};
 async function syncToCloud(user,entries,documentRef=doc(db,'users',user.uid,'apps','dizel')){const cloud=[];for(const item of entries){const copy={...item};if(typeof copy.photo==='string'&&copy.photo.startsWith('data:image/')){const photoRef=ref(storage,`users/${user.uid}/dizel/${copy.id}.jpg`);await uploadString(photoRef,copy.photo,'data_url');copy.photo=await getDownloadURL(photoRef);}cloud.push(copy);}const str=JSON.stringify(cloud);await setDoc(documentRef,{log:cloud});lastRemote=str;}
 window.addEventListener('fuel-log-changed',e=>{const user=auth?.currentUser;if(!user)return;const str=JSON.stringify(e.detail);if(str===lastRemote)return;syncToCloud(user,e.detail).catch(()=>showToast('Sinhronizacija ni uspela; preveri Firestore in Storage pravila.'));});
